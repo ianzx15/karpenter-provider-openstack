@@ -12,15 +12,12 @@ karpv1 "sigs.k8s.io/karpenter/pkg/apis/v1"
 "sigs.k8s.io/karpenter/pkg/cloudprovider"
 "sigs.k8s.io/karpenter/pkg/events"
 
-"github.com/ianzx15/karpenter-provider-openstack/pkg/apis/v1alpha1"
 "github.com/ianzx15/karpenter-provider-openstack/pkg/providers/instance"
 "github.com/ianzx15/karpenter-provider-openstack/pkg/providers/instancetype"
 ```
-
 )
 
 const CloudProviderName = "openstack"
-
 type CloudProvider struct {
 kubeClient           client.Client
 recorder             events.Recorder
