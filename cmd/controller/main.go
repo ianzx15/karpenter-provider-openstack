@@ -1,72 +1,45 @@
-/*
-Copyright 2024 The CloudPilot AI Authors.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 package main
 
 import (
-	"github.com/samber/lo"
-	"sigs.k8s.io/karpenter/pkg/cloudprovider/metrics"
-	corecontrollers "sigs.k8s.io/karpenter/pkg/controllers"
-	"sigs.k8s.io/karpenter/pkg/controllers/state"
-	coreoperator "sigs.k8s.io/karpenter/pkg/operator"
+	"context"
+	"fmt"
 
-	"github.com/cloudpilot-ai/karpenter-provider-gcp/pkg/cloudprovider"
-	"github.com/cloudpilot-ai/karpenter-provider-gcp/pkg/controllers"
-	"github.com/cloudpilot-ai/karpenter-provider-gcp/pkg/operator"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
+	karpv1 "sigs.k8s.io/karpenter/pkg/apis/v1"
+
+	"github.com/ianzx15/karpenter-provider-openstack/pkg/cloudprovider"
+	"github.com/ianzx15/karpenter-provider-openstack/pkg/providers/instance"
+	"github.com/ianzx15/karpenter-provider-openstack/pkg/providers/instancetype"
+	"github.com/ianzx15/karpenter-provider-openstack/pkg/apis/v1alpha1"
+	"sigs.k8s.io/karpenter/pkg/events"
 )
 
 func main() {
-	ctx, op := operator.NewOperator(coreoperator.NewOperator())
+	ctx := context.Background()
 
-	gcpCloudProvider := cloudprovider.New(
-		op.GetClient(),
-		op.EventRecorder,
-		op.InstanceTypeProvider,
-		op.InstanceProvider,
-	)
+	kubeClient := fake.NewClientBuilder().Build()
 
-	lo.Must0(op.AddHealthzCheck("cloud-provider", gcpCloudProvider.LivenessProbe))
-	cloudProvider := metrics.Decorate(gcpCloudProvider)
-	clusterState := state.NewCluster(op.Clock, op.GetClient(), cloudProvider)
+	recorder := events.NewRecorder(nil, "openstack-test")
 
-	op.
-		WithControllers(ctx, corecontrollers.NewControllers(
-			ctx,
-			op.Manager,
-			op.Clock,
-			op.GetClient(),
-			op.EventRecorder,
-			cloudProvider,
-			clusterState,
-		)...).
-		WithControllers(ctx, controllers.NewController(
-			ctx,
-			op.GetClient(),
-			op.KubernetesInterface,
-			op.EventRecorder,
-			op.UnavailableOfferingsCache,
-			op.MetadataClient,
-			op.ZoneOperationClient,
-			op.Credential,
-			op.ImagesProvider,
-			op.NodePoolTemplateProvider,
-			op.InstanceTypeProvider,
-			op.InstanceProvider,
-			gcpCloudProvider,
-			op.PricingProvider,
-		)...).
-		Start(ctx)
+	instanceTypeProvider := instancetype.NewProvider() 
+	instanceProvider := instance.NewProvider()         
+
+	openstackProvider := cloudprovider.New(kubeClient, recorder, instanceTypeProvider, instanceProvider)
+
+	nodeClaim := &karpv1.NodeClaim{
+		Spec: karpv1.NodeClaimSpec{
+			NodeClassRef: &karpv1.NodeClassRef{
+				Name: "openstack-default",
+			},
+		},
+	}
+
+	newNodeClaim, err := openstackProvider.Create(ctx, nodeClaim)
+	if err != nil {
+		fmt.Println("Erro ao criar instância:", err)
+		return
+	}
+
+	fmt.Println("Instância criada com ProviderID:", newNodeClaim.Status.ProviderID)
 }
