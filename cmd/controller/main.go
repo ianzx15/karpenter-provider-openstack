@@ -1,55 +1,49 @@
 package main
 
 import (
-	"context"
-	"fmt"
-	"log"
+    "flag"
+    "os"
+    "context"
+    "log"
 
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
-
-	"github.com/ianzx15/karpenter-provider-openstack/pkg/cloudprovider"
-	"github.com/ianzx15/karpenter-provider-openstack/pkg/providers/instance"
-	"github.com/ianzx15/karpenter-provider-openstack/pkg/providers/instancetype"
-
-	karpv1 "sigs.k8s.io/karpenter/pkg/apis/v1"
+    "github.com/yourorg/karpenter-provider-openstack/pkg/openstack"
+    "github.com/yourorg/karpenter-provider-openstack/pkg/provider/openstack"
+    "sigs.k8s.io/karpenter/pkg/cloudprovider"
+    "sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
 func main() {
-	ctx := context.Background()
+    var (
+        imageID	= flag.String("image-id", "", "OpenStack Image ID to use for nodes")
+        flavorID	= flag.String("flavor-id", "", "OpenStack Flavor ID to use for nodes")
+        networkIDs	= flag.String("network-ids", "", "Comma separated network IDs")
+        zone	= flag.String("zone", "", "OpenStack availability zone")
+    )
+    flag.Parse()
 
-	k8sConfig := config.GetConfigOrDie()
-	mgr, err := manager.New(k8sConfig, manager.Options{})
-	if err != nil {
-		log.Fatalf("failed to create manager: %v", err)
-	}
+    cfg := openstack.Config{
+        ImageID:   *imageID,
+        FlavorID:  *flavorID,
+        NetworkIDs: []string{*networkIDs}, 
+        Zone:      *zone,
+    }
 
-	instanceProvider, err := instance.NewProviderOpenStack()
-	if err != nil {
-		log.Fatalf("failed to initialize OpenStack instance provider: %v", err)
-	}
+    client, err := openstack.NewClient(/* credenciais do .env*/)
+    if err != nil {
+        log.Fatalf("failed to create openstack client: %v", err)
+    }
 
-	instanceTypeProvider := instancetype.NewProvider() 
+    provider := openstack.NewCloudProvider(client, cfg)
 
-	openstackProvider := cloudprovider.New(
-		mgr.GetClient(),
-		nil, 
-		instanceTypeProvider,
-		instanceProvider,
-	)
+    mgr, err := manager.New(manager.Options{
+    })
+    if err != nil {
+        log.Fatalf("failed to create manager: %v", err)
+    }
 
-	nodeClaim := &karpv1.NodeClaim{
-		Spec: karpv1.NodeClaimSpec{
-			NodeClassRef: &karpv1.NodeClassRef{
-				Name: "openstack-small", 
-			},
-		},
-	}
+    cloudprovider.Register(provider)
 
-	newNodeClaim, err := openstackProvider.Create(ctx, nodeClaim)
-	if err != nil {
-		log.Fatalf("failed to create OpenStack instance: %v", err)
-	}
-
-	fmt.Printf("Instância criada com ProviderID: %s\n", newNodeClaim.Status.ProviderID)
+    if err := mgr.Start(context.Background()); err != nil {
+        log.Fatalf("manager exited: %v", err)
+    }
 }
