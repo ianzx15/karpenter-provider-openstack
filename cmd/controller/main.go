@@ -6,8 +6,8 @@ import (
     "context"
     "log"
 
-    "github.com/yourorg/karpenter-provider-openstack/pkg/openstack"
-    "github.com/yourorg/karpenter-provider-openstack/pkg/provider/openstack"
+    "github.com/ianzx15/karpenter-provider-openstack/pkg/openstack"
+    "github.com/ianzx15/karpenter-provider-openstack/pkg/provider/openstack"
     "sigs.k8s.io/karpenter/pkg/cloudprovider"
     "sigs.k8s.io/controller-runtime/pkg/manager"
 )
