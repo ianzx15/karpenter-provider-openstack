@@ -18,14 +18,13 @@ package pretty
 
 import (
 	"bytes"
-	"cmp"
 	"encoding/json"
 	"fmt"
 	"regexp"
-	"slices"
 	"strings"
-	"unicode"
 
+	"golang.org/x/exp/constraints"
+	"golang.org/x/exp/slices"
 	v1 "k8s.io/api/core/v1"
 )
 
@@ -55,7 +54,7 @@ func Slice[T any](s []T, maxItems int) string {
 
 // Map truncates a map after a certain number of max items to ensure that the
 // description in a log doesn't get too long
-func Map[K cmp.Ordered, V any](values map[K]V, maxItems int) string {
+func Map[K constraints.Ordered, V any](values map[K]V, maxItems int) string {
 	var buf bytes.Buffer
 	count := 0
 	var keys []K
@@ -95,8 +94,4 @@ func ToSnakeCase(str string) string {
 	snake := matchFirstCap.ReplaceAllString(str, "${1}_${2}")
 	snake = matchAllCap.ReplaceAllString(snake, "${1}_${2}")
 	return strings.ToLower(snake)
-}
-
-func Sentence(str string) string {
-	return string(unicode.ToUpper(rune(str[0]))) + str[1:]
 }
