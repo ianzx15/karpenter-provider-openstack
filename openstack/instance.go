@@ -49,7 +49,6 @@ func (p *DefaultProvider) Create(ctx context.Context, nodeClass *OpenStackNodeCl
 	if len(instanceTypes) == 0 {
 		return nil, fmt.Errorf("no instance types provided")
 	}
-
 	capacityType := karpv1.CapacityTypeOnDemand
 	zone := "default-zone"
 
@@ -62,9 +61,25 @@ func (p *DefaultProvider) Create(ctx context.Context, nodeClass *OpenStackNodeCl
 			errs = append(errs, fmt.Errorf("failed to build instance options for %s: %w", instanceType.Name, err))
 			continue
 		}
+		//Real creation commented out
+		// server, err := servers.Create(p.computeClient, createdOpts).Extract()
+		// if err != nil {
+		// 	errs = append(errs, fmt.Errorf("failed to create instance for %s: %w", instanceType.Name, err))
+		// 	continue
+		// }
 
-		log.FromContext(ctx).Info("Criando instância OpenStack", "instanceName", instanceName, "flavor", instanceType.Name, "zone", zone)
+		// instance := &Instance{
+		// 	Name:       server.Name,
+		// 	Type:       server.Flavor["id"].(string),
+		// 	ImageID:    server.Image["id"].(string),
+		// 	Metadata:   server.Metadata,
+		// 	UserData:   createdOpts.UserData,
+		// 	InstanceID: server.ID,
+		// 	Status:     server.Status,
+		// }
 
+		log.FromContext(ctx).Info("Creating instance OpenStack", "instanceName", instanceName, "flavor", instanceType.Name, "zone", zone)
+		//Mocked creation
 		instance := &Instance{
 			Name:       createdOpts.Name,
 			Type:       createdOpts.FlavorRef,

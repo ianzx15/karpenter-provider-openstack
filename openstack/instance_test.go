@@ -2,6 +2,7 @@ package openstack
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -30,8 +31,11 @@ func TestCreateInstance(t *testing.T) {
 			scheduling.NewRequirement("instance-type", "In", "m1.large"),
 		),
 	}
+	
 
 	test := NewProvider(nil, "test-cluster")
+
+	fmt.Println("aquiiii:", test.computeClient)
 
 	instance, err := test.Create(ctx, nodeClass, nodeClaim, []*cloudprovider.InstanceType{instanceType})
 	if err != nil {
