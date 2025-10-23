@@ -6,12 +6,11 @@ replace github.com/ianzx15/karpenter-provider-openstack => ./
 
 require (
 	github.com/gophercloud/gophercloud v1.14.1
-	github.com/ianzx15/karpenter-provider-openstack v0.0.0-00010101000000-000000000000
 	github.com/stretchr/testify v1.11.1
 	k8s.io/api v0.34.1
 	k8s.io/apimachinery v0.34.1
 	sigs.k8s.io/controller-runtime v0.22.3
-	sigs.k8s.io/karpenter v1.8.0
+	sigs.k8s.io/karpenter-core v1.1.2
 )
 
 require (

@@ -6,13 +6,9 @@ import (
 	"time"
 
 	// IMPORT ADICIONADO para a interface Client
-	"github.com/ianzx15/karpenter-provider-openstack/pkg/openstack"
-
 	"sigs.k8s.io/karpenter/pkg/cloudprovider"
 	// API v1 (como você já tem)
 	v1 "sigs.k8s.io/karpenter/pkg/apis/v1" 
-
-	"github.com/ianzx15/karpenter-provider-openstack/pkg/utils"
 )
 
 type CloudProvider struct {

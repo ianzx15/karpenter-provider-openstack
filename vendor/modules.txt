@@ -78,14 +78,8 @@ github.com/gophercloud/gophercloud/openstack/identity/v2/tokens
 github.com/gophercloud/gophercloud/openstack/identity/v3/extensions/ec2tokens
 github.com/gophercloud/gophercloud/openstack/identity/v3/extensions/oauth1
 github.com/gophercloud/gophercloud/openstack/identity/v3/tokens
-github.com/gophercloud/gophercloud/openstack/networking/v2/networks
 github.com/gophercloud/gophercloud/openstack/utils
 github.com/gophercloud/gophercloud/pagination
-# github.com/ianzx15/karpenter-provider-openstack v0.0.0-00010101000000-000000000000 => ./
-## explicit; go 1.25.3
-github.com/ianzx15/karpenter-provider-openstack/pkg/openstack
-github.com/ianzx15/karpenter-provider-openstack/pkg/provider/openstack
-github.com/ianzx15/karpenter-provider-openstack/pkg/utils
 # github.com/inconshreveable/mousetrap v1.1.0
 ## explicit; go 1.18
 github.com/inconshreveable/mousetrap

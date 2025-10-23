@@ -1,5 +1,5 @@
 // pkg/utils/userdata.go
-package utils
+package openstack
 
 import (
 	"encoding/base64"
