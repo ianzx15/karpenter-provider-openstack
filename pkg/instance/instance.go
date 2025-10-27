@@ -1,4 +1,4 @@
-package openstack
+package instance
 
 import (
 	"context"
@@ -10,15 +10,8 @@ import (
 	karpv1 "sigs.k8s.io/karpenter/pkg/apis/v1"
 	"sigs.k8s.io/karpenter/pkg/cloudprovider"
 )
-
-type Instance struct {
-	Name       string
-	Type       string
-	ImageID    string
-	Metadata   map[string]string
-	UserData   []byte
-	InstanceID string
-	Status     string
+type Provider interface {
+	Create(ctx context.Context, nodeClass *OpenStackNodeClass, nodeClaim *karpv1.NodeClaim, instanceTypes []*cloudprovider.InstanceType) (*Instance, error)
 }
 
 type OpenStackNodeClass struct {
@@ -38,9 +31,6 @@ type DefaultProvider struct {
 	computeClient *gophercloud.ServiceClient
 }
 
-type Provider interface {
-	Create(ctx context.Context, nodeClass *OpenStackNodeClass, nodeClaim *karpv1.NodeClaim, instanceTypes []*cloudprovider.InstanceType) (*Instance, error)
-}
 
 func NewProvider(client *gophercloud.ServiceClient, clusterName string) Provider {
 	return &DefaultProvider{
@@ -94,7 +84,7 @@ func (p *DefaultProvider) Create(ctx context.Context, nodeClass *OpenStackNodeCl
 			Status:     "BUILD",
 		}
 
-		fmt.Printf("Instância criada com sucesso | instanceName=%s | providerID=%s | status=%s | UserData=%s | MetaData=%s | ImageId=%s | Type=%s\n",
+		fmt.Printf("Instance successfully created | instanceName=%s | providerID=%s | status=%s | UserData=%s | MetaData=%s | ImageId=%s | Type=%s\n",
 			instance.Name, instance.InstanceID, instance.Status, string(instance.UserData), instance.Metadata, instance.ImageID, instance.Type)
 		return instance, nil
 	}
