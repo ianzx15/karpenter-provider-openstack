@@ -1,0 +1,149 @@
+package v1openstack
+
+import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+type OSNodeClass struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   OSNodeClassSpec   `json:"spec,omitempty"`
+	Status OSNodeClassStatus `json:"status,omitempty"`
+}
+
+type OSNodeClassSpec struct {
+	// Flavor defines the OpenStack flavor to use for the node.
+	Flavor string `json:"flavor"`
+
+	// KeyPair is the OpenStack key pair name to assign to the instance
+	// +optional
+	KeyPair string `json:"keyPair,omitempty"`
+
+	// Disks defines the disks to attach to the provisioned instance.
+	// +kubebuilder:validation:MaxItems=10
+	// +optional
+	Disks []Disk `json:"disks,omitempty"`
+
+	// ImageSelectorTerms is a list of image selector terms. The terms are ORed.
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=30
+	// +required
+	ImageSelectorTerms []OSImageSelectorTerm `json:"imageSelectorTerms" hash:"ignore"`
+
+	// Networks specifies the OpenStack networks to attach to the instance.
+	// +kubebuilder:validation:MinItems=1
+	// +required
+	Networks []string `json:"networks"`
+
+	// SecurityGroups specifies the OpenStack security groups to assign to the instance.
+	// +optional
+	SecurityGroups []string `json:"securityGroups,omitempty"`
+
+	// FloatingIP indicates whether to assign a floating IP to the instance.
+	// +optional
+	FloatingIP bool `json:"floatingIP,omitempty"`
+
+	// KubeletConfiguration defines args to be used when configuring kubelet on provisioned nodes.
+	// +optional
+	KubeletConfiguration *KubeletConfiguration `json:"kubeletConfiguration,omitempty"`
+
+	// Labels to be applied on the OpenStack VM instance.
+	// +optional
+	Labels map[string]string `json:"labels,omitempty"`
+
+	// Metadata contains key/value pairs to set as instance metadata.
+	// +optional
+	Metadata map[string]string `json:"metadata,omitempty"`
+}
+
+// OSImageSelectorTerm defines selection logic for a Glance image used by Karpenter to launch nodes.
+// If multiple fields are used for selection, the requirements are ANDed.
+type OSImageSelectorTerm struct {
+	// Alias specifies the image name or family in OpenStack Glance.
+	// For example: ubuntu-22.04, centos-8
+	// +kubebuilder:validation:MaxLength=60
+	// +optional
+	Alias string `json:"alias,omitempty"`
+
+	// ID specifies the exact Glance image ID to use.
+	// +kubebuilder:validation:MaxLength=160
+	// +optional
+	ID string `json:"id,omitempty"`
+}
+
+// KubeletConfiguration defines args to be used when configuring kubelet on provisioned nodes.
+type KubeletConfiguration struct {
+	// ClusterDNS is a list of IP addresses for the cluster DNS server.
+	// +optional
+	ClusterDNS []string `json:"clusterDNS,omitempty"`
+
+	// MaxPods is an override for the maximum number of pods that can run on a worker node.
+	// +kubebuilder:validation:Minimum:=0
+	// +optional
+	MaxPods *int32 `json:"maxPods,omitempty"`
+
+	// PodsPerCore is an override for the number of pods per CPU core.
+	// +kubebuilder:validation:Minimum:=0
+	// +optional
+	PodsPerCore *int32 `json:"podsPerCore,omitempty"`
+
+	// SystemReserved contains resources reserved for OS system daemons and kernel memory.
+	// +optional
+	SystemReserved map[string]string `json:"systemReserved,omitempty"`
+
+	// KubeReserved contains resources reserved for Kubernetes system components.
+	// +optional
+	KubeReserved map[string]string `json:"kubeReserved,omitempty"`
+
+	// EvictionHard defines hard eviction thresholds.
+	// +optional
+	EvictionHard map[string]string `json:"evictionHard,omitempty"`
+
+	// EvictionSoft defines soft eviction thresholds.
+	// +optional
+	EvictionSoft map[string]string `json:"evictionSoft,omitempty"`
+
+	// EvictionSoftGracePeriod defines grace periods for soft eviction thresholds.
+	// +optional
+	EvictionSoftGracePeriod map[string]metav1.Duration `json:"evictionSoftGracePeriod,omitempty"`
+
+	// EvictionMaxPodGracePeriod is the maximum allowed grace period for terminating pods.
+	// +optional
+	EvictionMaxPodGracePeriod *int32 `json:"evictionMaxPodGracePeriod,omitempty"`
+
+	// ImageGCHighThresholdPercent is the disk usage percent after which image GC is always run.
+	// +kubebuilder:validation:Minimum:=0
+	// +kubebuilder:validation:Maximum:=100
+	// +optional
+	ImageGCHighThresholdPercent *int32 `json:"imageGCHighThresholdPercent,omitempty"`
+
+	// ImageGCLowThresholdPercent is the disk usage percent before which image GC is never run.
+	// +kubebuilder:validation:Minimum:=0
+	// +kubebuilder:validation:Maximum:=100
+	// +optional
+	ImageGCLowThresholdPercent *int32 `json:"imageGCLowThresholdPercent,omitempty"`
+
+	// CPUCFSQuota enables CPU CFS quota enforcement for containers that specify CPU limits.
+	// +optional
+	CPUCFSQuota *bool `json:"cpuCFSQuota,omitempty"`
+}
+
+type Disk struct {
+	// SizeGiB is the size of the disk in GiB.
+	// +kubebuilder:validation:XValidation:message="size invalid, must be >=10",rule="self >= 10"
+	// +required
+	SizeGiB int32 `json:"sizeGiB"`
+
+	// VolumeType is the Cinder volume type (e.g., standard, ssd, high-speed).
+	// +optional
+	VolumeType string `json:"volumeType,omitempty"`
+
+	// Boot indicates that this is the boot disk.
+	// +optional
+	Boot bool `json:"boot,omitempty"`
+}
+
+type OSNodeClassStatus struct {
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+}

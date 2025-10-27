@@ -725,6 +725,7 @@ sigs.k8s.io/json/internal/golang/encoding/json
 sigs.k8s.io/karpenter/pkg/apis
 sigs.k8s.io/karpenter/pkg/apis/v1
 sigs.k8s.io/karpenter/pkg/cloudprovider
+sigs.k8s.io/karpenter/pkg/events
 sigs.k8s.io/karpenter/pkg/scheduling
 sigs.k8s.io/karpenter/pkg/utils/pretty
 sigs.k8s.io/karpenter/pkg/utils/resources
