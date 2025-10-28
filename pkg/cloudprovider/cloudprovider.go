@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/awslabs/operatorpkg/status"
-	"github.com/cloudpilot-ai/karpenter-provider-gcp/pkg/apis/v1alpha1"
 	"github.com/ianzx15/karpenter-provider-openstack/pkg/apis/v1openstack"
 	"github.com/ianzx15/karpenter-provider-openstack/pkg/instance"
 	"github.com/ianzx15/karpenter-provider-openstack/pkg/instancetype"

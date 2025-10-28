@@ -2,38 +2,71 @@ package instancetype
 
 import (
 	"context"
-	"net/http"
-
+	// <-- Importe o fmt se for usar MustParse
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/flavors"
 	"github.com/ianzx15/karpenter-provider-openstack/pkg/apis/v1openstack"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	karpv1 "sigs.k8s.io/karpenter/pkg/apis/v1"
 	"sigs.k8s.io/karpenter/pkg/cloudprovider"
 	"sigs.k8s.io/karpenter/pkg/scheduling"
 )
 
 type Provider interface {
-	LivenessProbe(*http.Request) error
-	List(context.Context, *v1openstack.OSNodeClassSpec) ([]*cloudprovider.InstanceType, error)
+	List(context.Context, *v1openstack.OSNodeClass) ([]*cloudprovider.InstanceType, error)
 }
 
 type DefaultProvider struct {
+	InstanceTypesInfo []*flavors.Flavor
 }
 
-func (p *DefaultProvider) createOffering(capacityType string, available bool) *cloudprovider.Offering {
-	return &cloudprovider.Offering{
+func (p *DefaultProvider) createOffering() cloudprovider.Offering {
+	return cloudprovider.Offering{
 		Requirements: scheduling.NewRequirements(
-			scheduling.NewRequirement(karpv1.CapacityTypeLabelKey, corev1.NodeSelectorOpIn, capacityType),
+			scheduling.NewRequirement(
+				karpv1.CapacityTypeLabelKey,
+				corev1.NodeSelectorOpIn,
+				string(karpv1.CapacityTypeOnDemand),
+			),
 		),
-		Available: available,
+		Available: true,
 	}
 }
 
 func (p *DefaultProvider) List(ctx context.Context, nodeClass *v1openstack.OSNodeClass) ([]*cloudprovider.InstanceType, error) {
-	reqs := scheduling.NewRequirements(
-		scheduling.NewRequirement(corev1.LabelInstanceTypeStable, selection.LabelSelectorOpIn, "m1.small"),
-	)
+	instanceTypes := []*cloudprovider.InstanceType{}
+	for _, flavor := range p.InstanceTypesInfo {
+		maxPods := int64(110)
+		if nodeClass.Spec.KubeletConfiguration != nil && nodeClass.Spec.KubeletConfiguration.MaxPods != nil {
+			maxPods = int64(*nodeClass.Spec.KubeletConfiguration.MaxPods)
+		}
 
-	instanceType := &cloudprovider.InstanceType{}
+		capacity := corev1.ResourceList{
+			corev1.ResourceCPU:    *resource.NewQuantity(int64(flavor.VCPUs), resource.DecimalSI),
+			corev1.ResourceMemory: *resource.NewQuantity(int64(flavor.RAM)*1024*1024, resource.BinarySI),
+			corev1.ResourcePods:   *resource.NewQuantity(maxPods, resource.DecimalSI),
+		}
 
-	return []*cloudprovider.InstanceType{instanceType}, nil
+		offering := p.createOffering()
+
+		instanceType := &cloudprovider.InstanceType{
+			Name: flavor.Name,
+			Offerings: cloudprovider.Offerings{
+				&offering,
+			},
+			Capacity: capacity,
+
+			Requirements: scheduling.NewRequirements(
+				scheduling.NewRequirement(
+					corev1.LabelInstanceTypeStable,
+					corev1.NodeSelectorOpIn,
+					flavor.Name,
+				),
+				scheduling.NewRequirement(corev1.LabelArchStable, corev1.NodeSelectorOpIn, "amd64"),
+				scheduling.NewRequirement(corev1.LabelOSStable, corev1.NodeSelectorOpIn, "linux"),
+			),
+		}
+		instanceTypes = append(instanceTypes, instanceType)
+	}
+	return instanceTypes, nil
 }
