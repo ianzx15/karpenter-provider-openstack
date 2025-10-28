@@ -2,7 +2,6 @@ package instancetype
 
 import (
 	"context"
-	// <-- Importe o fmt se for usar MustParse
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/flavors"
 	"github.com/ianzx15/karpenter-provider-openstack/pkg/apis/v1openstack"
 	corev1 "k8s.io/api/core/v1"
