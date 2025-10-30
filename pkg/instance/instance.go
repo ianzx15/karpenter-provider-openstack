@@ -6,31 +6,20 @@ import (
 
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
+	"github.com/ianzx15/karpenter-provider-openstack/pkg/apis/v1openstack"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	karpv1 "sigs.k8s.io/karpenter/pkg/apis/v1"
 	"sigs.k8s.io/karpenter/pkg/cloudprovider"
 )
+
 type Provider interface {
-	Create(ctx context.Context, nodeClass *OpenStackNodeClass, nodeClaim *karpv1.NodeClaim, instanceTypes []*cloudprovider.InstanceType) (*Instance, error)
-}
-
-type OpenStackNodeClass struct {
-	Spec OpenStackNodeClassSpec
-}
-
-type OpenStackNodeClassSpec struct {
-	Labels         map[string]string
-	ImageRef       string
-	Networks       []string
-	UserData       string
-	SecurityGroups []string
+	Create(ctx context.Context, nodeClass *v1openstack.OpenStackNodeClass, nodeClaim *karpv1.NodeClaim, instanceTypes []*cloudprovider.InstanceType) (*Instance, error)
 }
 
 type DefaultProvider struct {
 	clusterName   string
 	computeClient *gophercloud.ServiceClient
 }
-
 
 func NewProvider(client *gophercloud.ServiceClient, clusterName string) Provider {
 	return &DefaultProvider{
@@ -39,7 +28,7 @@ func NewProvider(client *gophercloud.ServiceClient, clusterName string) Provider
 	}
 }
 
-func (p *DefaultProvider) Create(ctx context.Context, nodeClass *OpenStackNodeClass, nodeClaim *karpv1.NodeClaim, instanceTypes []*cloudprovider.InstanceType) (*Instance, error) {
+func (p *DefaultProvider) Create(ctx context.Context, nodeClass *v1openstack.OpenStackNodeClass, nodeClaim *karpv1.NodeClaim, instanceTypes []*cloudprovider.InstanceType) (*Instance, error) {
 	if len(instanceTypes) == 0 {
 		return nil, fmt.Errorf("no instance types provided")
 	}
@@ -92,8 +81,8 @@ func (p *DefaultProvider) Create(ctx context.Context, nodeClass *OpenStackNodeCl
 	return nil, fmt.Errorf("failed to create instance after trying all instance types: %w", fmt.Errorf("%v", errs))
 }
 
-func (p *DefaultProvider) buildInstanceOpts(ctx context.Context, nodeClaim *karpv1.NodeClaim, nodeClass *OpenStackNodeClass, instanceType *cloudprovider.InstanceType, zone, instanceName, capacityType string) (servers.CreateOpts, error) {
-	imageID := nodeClass.Spec.ImageRef
+func (p *DefaultProvider) buildInstanceOpts(ctx context.Context, nodeClaim *karpv1.NodeClaim, nodeClass *v1openstack.OpenStackNodeClass, instanceType *cloudprovider.InstanceType, zone, instanceName, capacityType string) (servers.CreateOpts, error) {
+	imageID := nodeClass.Spec.ImageSelectorTerms[0].ID
 	flavorName := instanceType.Name
 
 	userData := []byte(nodeClass.Spec.UserData)

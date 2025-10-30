@@ -7,15 +7,15 @@ import (
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-type OSNodeClass struct {
+type OpenStackNodeClass struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   OSNodeClassSpec   `json:"spec,omitempty"`
-	Status OSNodeClassStatus `json:"status,omitempty"`
+	Spec   OpenStackNodeClassSpec   `json:"spec,omitempty"`
+	Status OpenStackNodeClassStatus `json:"status,omitempty"`
 }
 
-type OSNodeClassSpec struct {
+type OpenStackNodeClassSpec struct {
 	// Flavor defines the OpenStack flavor to use for the node.
 	Flavor string `json:"flavor"`
 
@@ -28,10 +28,18 @@ type OSNodeClassSpec struct {
 	// +optional
 	Disks []Disk `json:"disks,omitempty"`
 
+	// UserData to be passed to the instance (cloud-init).
+	// +optional
+	UserData string `json:"userData,omitempty"`
+
+	// ImageRef is the OpenStack Glance image ID to use for the instance.
+	// +optional
+	ImageRef string `json:"imageRef,omitempty"`
+
 	// ImageSelectorTerms is a list of image selector terms. The terms are ORed.
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=30
-	ImageSelectorTerms []OSImageSelectorTerm `json:"imageSelectorTerms"`
+	ImageSelectorTerms []OpenStackImageSelectorTerm `json:"imageSelectorTerms"`
 
 	// Networks specifies the OpenStack networks to attach to the instance.
 	// +kubebuilder:validation:MinItems=1
@@ -58,7 +66,7 @@ type OSNodeClassSpec struct {
 	Metadata map[string]string `json:"metadata,omitempty"`
 }
 
-type OSImageSelectorTerm struct {
+type OpenStackImageSelectorTerm struct {
 	// Alias specifies the image name or family in OpenStack Glance.
 	// +kubebuilder:validation:MaxLength=60
 	// +optional
@@ -140,13 +148,13 @@ type Disk struct {
 	Boot bool `json:"boot,omitempty"`
 }
 
-type OSNodeClassStatus struct {
+type OpenStackNodeClassStatus struct {
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
 // DeepCopyObject is not working correctly with kubebuilder for some reason, so we implement it manually.
-func (in *OSNodeClass) DeepCopyObject() runtime.Object {
-	out := OSNodeClass{}
+func (in *OpenStackNodeClass) DeepCopyObject() runtime.Object {
+	out := OpenStackNodeClass{}
 	// in.DeepCopyInto(&out)
 	return &out
 }

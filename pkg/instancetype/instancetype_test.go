@@ -28,8 +28,8 @@ func TestListInstanceTypes(t *testing.T) {
 		InstanceTypesInfo: mockFlavors,
 	}
 
-	nodeClass := &v1openstack.OSNodeClass{
-		Spec: v1openstack.OSNodeClassSpec{
+	nodeClass := &v1openstack.OpenStackNodeClass{
+		Spec: v1openstack.OpenStackNodeClassSpec{
 			Flavor: "small",
 			KubeletConfiguration: &v1openstack.KubeletConfiguration{
 				MaxPods: nil, 

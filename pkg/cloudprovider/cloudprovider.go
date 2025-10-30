@@ -6,10 +6,13 @@ import (
 	"net/http"
 
 	"github.com/awslabs/operatorpkg/status"
+	"github.com/cloudpilot-ai/karpenter-provider-gcp/pkg/utils"
 	"github.com/ianzx15/karpenter-provider-openstack/pkg/apis/v1openstack"
 	"github.com/ianzx15/karpenter-provider-openstack/pkg/instance"
 	"github.com/ianzx15/karpenter-provider-openstack/pkg/instancetype"
 	"github.com/samber/lo"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	karpv1 "sigs.k8s.io/karpenter/pkg/apis/v1"
@@ -20,12 +23,6 @@ import (
 )
 
 var _ cloudprovider.CloudProvider = (*CloudProvider)(nil)
-
-/*
-	TODO
-	resolveInstanceTypes
-	instanceToNodeClaim
-*/
 
 type CloudProvider struct {
 	kubeClient client.Client
@@ -52,9 +49,17 @@ func (c *CloudProvider) Create(ctx context.Context, nodeClaim *karpv1.NodeClaim)
 
 	instancetypes, err := c.resolveInstanceTypes(ctx, nodeClaim, nodeClass)
 
-	return nil, nil
+	instance, err := c.instanceProvider.Create(ctx, nodeClass, nodeClaim, instancetypes)
+
+	instanceType, _ := lo.Find(instancetypes, func(it *cloudprovider.InstanceType) bool {
+		return it.Name == instance.Type
+	})
+
+	nc := c.instanceToNodeClaim(instance, instanceType)
+
+	return nc, nil
 }
-func (c *CloudProvider) resolveInstanceTypes(ctx context.Context, nodeClaim *karpv1.NodeClaim, nodeClass *v1openstack.OSNodeClass) ([]*cloudprovider.InstanceType, error) {
+func (c *CloudProvider) resolveInstanceTypes(ctx context.Context, nodeClaim *karpv1.NodeClaim, nodeClass *v1openstack.OpenStackNodeClass) ([]*cloudprovider.InstanceType, error) {
 	instanceTypes, err := c.instanceTypeProvider.List(ctx, nodeClass)
 	if err != nil {
 		return nil, err
@@ -68,16 +73,34 @@ func (c *CloudProvider) resolveInstanceTypes(ctx context.Context, nodeClaim *kar
 	}), nil
 }
 
-func (c *CloudProvider) resolveNodeClassFromNodeClaim(ctx context.Context, nodeClaim *karpv1.NodeClaim) (*v1openstack.OSNodeClass, error) {
+func (c *CloudProvider) resolveNodeClassFromNodeClaim(ctx context.Context, nodeClaim *karpv1.NodeClaim) (*v1openstack.OpenStackNodeClass, error) {
 	ref := nodeClaim.Spec.NodeClassRef
 	if ref == nil {
 		return nil, fmt.Errorf("nodeClaim missing NodeClassRef")
 	}
-	nodeClass := &v1openstack.OSNodeClass{}
+	nodeClass := &v1openstack.OpenStackNodeClass{}
 	if err := c.kubeClient.Get(ctx, types.NamespacedName{Name: ref.Name}, nodeClass); err != nil {
 		return nil, fmt.Errorf("getting NodeClass %s/%s: %w", ref.Name, ref.Name, err)
 	}
 	return nodeClass, nil
+}
+
+func (c *CloudProvider) instanceToNodeClaim(instance *instance.Instance, instanceType *cloudprovider.InstanceType) *karpv1.NodeClaim {
+	nodeClaim := &karpv1.NodeClaim{}
+	labels := map[string]string{}
+	annotations := map[string]string{}
+
+	if instanceType != nil {
+		labels = utils.GetAllSingleValuedRequirementLabels(instanceType)
+
+		resourceFilter := func(name corev1.ResourceName, value resource.Quantity) bool {
+			return !resources.IsZero(value)
+		}
+		nodeClaim.Status.Capacity = lo.PickBy(instanceType.Capacity, resourceFilter)
+		nodeClaim.Status.Allocatable = lo.PickBy(instanceType.Allocatable(), resourceFilter)
+	}
+
+	return nil
 }
 
 func (c *CloudProvider) Delete(ctx context.Context, nodeClaim *karpv1.NodeClaim) error {

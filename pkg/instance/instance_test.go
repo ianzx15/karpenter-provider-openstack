@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/ianzx15/karpenter-provider-openstack/pkg/apis/v1openstack"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	karpv1 "sigs.k8s.io/karpenter/pkg/apis/v1"
 	"sigs.k8s.io/karpenter/pkg/cloudprovider"
@@ -14,11 +15,15 @@ import (
 func TestCreateInstance(t *testing.T) {
 	ctx := context.Background()
 
-	nodeClass := &OpenStackNodeClass{
-		Spec: OpenStackNodeClassSpec{
-			ImageRef: "mock-image-id-456",
+	nodeClass := &v1openstack.OpenStackNodeClass{
+		Spec: v1openstack.OpenStackNodeClassSpec{
 			Networks: []string{"net-uuid-1"},
 			UserData: "#!/bin/bash\necho 'hello world'",
+			ImageSelectorTerms: []v1openstack.OpenStackImageSelectorTerm{
+				{
+					ID: "mock-image-id-456",
+				},
+			},
 		},
 	}
 	nodeClaim := &karpv1.NodeClaim{

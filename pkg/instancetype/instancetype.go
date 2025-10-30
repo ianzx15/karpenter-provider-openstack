@@ -2,6 +2,7 @@ package instancetype
 
 import (
 	"context"
+
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/flavors"
 	"github.com/ianzx15/karpenter-provider-openstack/pkg/apis/v1openstack"
 	corev1 "k8s.io/api/core/v1"
@@ -12,7 +13,7 @@ import (
 )
 
 type Provider interface {
-	List(context.Context, *v1openstack.OSNodeClass) ([]*cloudprovider.InstanceType, error)
+	List(context.Context, *v1openstack.OpenStackNodeClass) ([]*cloudprovider.InstanceType, error)
 }
 
 type DefaultProvider struct {
@@ -32,7 +33,7 @@ func (p *DefaultProvider) createOffering() cloudprovider.Offering {
 	}
 }
 
-func (p *DefaultProvider) List(ctx context.Context, nodeClass *v1openstack.OSNodeClass) ([]*cloudprovider.InstanceType, error) {
+func (p *DefaultProvider) List(ctx context.Context, nodeClass *v1openstack.OpenStackNodeClass) ([]*cloudprovider.InstanceType, error) {
 	instanceTypes := []*cloudprovider.InstanceType{}
 	for _, flavor := range p.InstanceTypesInfo {
 		maxPods := int64(110)
