@@ -2,6 +2,7 @@ package cloudprovider
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/awslabs/operatorpkg/status"
@@ -9,6 +10,7 @@ import (
 	"github.com/ianzx15/karpenter-provider-openstack/pkg/instance"
 	"github.com/ianzx15/karpenter-provider-openstack/pkg/instancetype"
 	"github.com/samber/lo"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	karpv1 "sigs.k8s.io/karpenter/pkg/apis/v1"
 	"sigs.k8s.io/karpenter/pkg/cloudprovider"
@@ -21,7 +23,6 @@ var _ cloudprovider.CloudProvider = (*CloudProvider)(nil)
 
 /*
 	TODO
-	instanceType
 	resolveInstanceTypes
 	instanceToNodeClaim
 */
@@ -44,6 +45,13 @@ func New(kubeClient client.Client, recorder events.Recorder,
 }
 
 func (c *CloudProvider) Create(ctx context.Context, nodeClaim *karpv1.NodeClaim) (*karpv1.NodeClaim, error) {
+	nodeClass, err := c.resolveNodeClassFromNodeClaim(ctx, nodeClaim)
+	if err != nil {
+		return nil, err
+	}
+
+	instancetypes, err := c.resolveInstanceTypes(ctx, nodeClaim, nodeClass)
+
 	return nil, nil
 }
 func (c *CloudProvider) resolveInstanceTypes(ctx context.Context, nodeClaim *karpv1.NodeClaim, nodeClass *v1openstack.OSNodeClass) ([]*cloudprovider.InstanceType, error) {
@@ -58,6 +66,18 @@ func (c *CloudProvider) resolveInstanceTypes(ctx context.Context, nodeClaim *kar
 			len(i.Offerings.Compatible(reqs).Available()) > 0 &&
 			resources.Fits(nodeClaim.Spec.Resources.Requests, i.Allocatable())
 	}), nil
+}
+
+func (c *CloudProvider) resolveNodeClassFromNodeClaim(ctx context.Context, nodeClaim *karpv1.NodeClaim) (*v1openstack.OSNodeClass, error) {
+	ref := nodeClaim.Spec.NodeClassRef
+	if ref == nil {
+		return nil, fmt.Errorf("nodeClaim missing NodeClassRef")
+	}
+	nodeClass := &v1openstack.OSNodeClass{}
+	if err := c.kubeClient.Get(ctx, types.NamespacedName{Name: ref.Name}, nodeClass); err != nil {
+		return nil, fmt.Errorf("getting NodeClass %s/%s: %w", ref.Name, ref.Name, err)
+	}
+	return nodeClass, nil
 }
 
 func (c *CloudProvider) Delete(ctx context.Context, nodeClaim *karpv1.NodeClaim) error {

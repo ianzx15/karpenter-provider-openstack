@@ -2,8 +2,11 @@ package v1openstack
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
 type OSNodeClass struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -28,12 +31,10 @@ type OSNodeClassSpec struct {
 	// ImageSelectorTerms is a list of image selector terms. The terms are ORed.
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=30
-	// +required
-	ImageSelectorTerms []OSImageSelectorTerm `json:"imageSelectorTerms" hash:"ignore"`
+	ImageSelectorTerms []OSImageSelectorTerm `json:"imageSelectorTerms"`
 
 	// Networks specifies the OpenStack networks to attach to the instance.
 	// +kubebuilder:validation:MinItems=1
-	// +required
 	Networks []string `json:"networks"`
 
 	// SecurityGroups specifies the OpenStack security groups to assign to the instance.
@@ -57,11 +58,8 @@ type OSNodeClassSpec struct {
 	Metadata map[string]string `json:"metadata,omitempty"`
 }
 
-// OSImageSelectorTerm defines selection logic for a Glance image used by Karpenter to launch nodes.
-// If multiple fields are used for selection, the requirements are ANDed.
 type OSImageSelectorTerm struct {
 	// Alias specifies the image name or family in OpenStack Glance.
-	// For example: ubuntu-22.04, centos-8
 	// +kubebuilder:validation:MaxLength=60
 	// +optional
 	Alias string `json:"alias,omitempty"`
@@ -72,19 +70,18 @@ type OSImageSelectorTerm struct {
 	ID string `json:"id,omitempty"`
 }
 
-// KubeletConfiguration defines args to be used when configuring kubelet on provisioned nodes.
 type KubeletConfiguration struct {
 	// ClusterDNS is a list of IP addresses for the cluster DNS server.
 	// +optional
 	ClusterDNS []string `json:"clusterDNS,omitempty"`
 
 	// MaxPods is an override for the maximum number of pods that can run on a worker node.
-	// +kubebuilder:validation:Minimum:=0
+	// +kubebuilder:validation:Minimum=0
 	// +optional
 	MaxPods *int32 `json:"maxPods,omitempty"`
 
 	// PodsPerCore is an override for the number of pods per CPU core.
-	// +kubebuilder:validation:Minimum:=0
+	// +kubebuilder:validation:Minimum=0
 	// +optional
 	PodsPerCore *int32 `json:"podsPerCore,omitempty"`
 
@@ -113,14 +110,14 @@ type KubeletConfiguration struct {
 	EvictionMaxPodGracePeriod *int32 `json:"evictionMaxPodGracePeriod,omitempty"`
 
 	// ImageGCHighThresholdPercent is the disk usage percent after which image GC is always run.
-	// +kubebuilder:validation:Minimum:=0
-	// +kubebuilder:validation:Maximum:=100
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=100
 	// +optional
 	ImageGCHighThresholdPercent *int32 `json:"imageGCHighThresholdPercent,omitempty"`
 
 	// ImageGCLowThresholdPercent is the disk usage percent before which image GC is never run.
-	// +kubebuilder:validation:Minimum:=0
-	// +kubebuilder:validation:Maximum:=100
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=100
 	// +optional
 	ImageGCLowThresholdPercent *int32 `json:"imageGCLowThresholdPercent,omitempty"`
 
@@ -131,8 +128,7 @@ type KubeletConfiguration struct {
 
 type Disk struct {
 	// SizeGiB is the size of the disk in GiB.
-	// +kubebuilder:validation:XValidation:message="size invalid, must be >=10",rule="self >= 10"
-	// +required
+	// +kubebuilder:validation:Minimum=10
 	SizeGiB int32 `json:"sizeGiB"`
 
 	// VolumeType is the Cinder volume type (e.g., standard, ssd, high-speed).
@@ -146,4 +142,11 @@ type Disk struct {
 
 type OSNodeClassStatus struct {
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
+}
+
+// DeepCopyObject is not working correctly with kubebuilder for some reason, so we implement it manually.
+func (in *OSNodeClass) DeepCopyObject() runtime.Object {
+	out := OSNodeClass{}
+	// in.DeepCopyInto(&out)
+	return &out
 }
