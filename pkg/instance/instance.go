@@ -45,33 +45,33 @@ func (p *DefaultProvider) Create(ctx context.Context, nodeClass *v1openstack.Ope
 			continue
 		}
 		//Real creation commented out
-		// server, err := servers.Create(p.computeClient, createdOpts).Extract()
-		// if err != nil {
-		// 	errs = append(errs, fmt.Errorf("failed to create instance for %s: %w", instanceType.Name, err))
-		// 	continue
-		// }
+		server, err := servers.Create(p.computeClient, createdOpts).Extract()
+		if err != nil {
+			errs = append(errs, fmt.Errorf("failed to create instance for %s: %w", instanceType.Name, err))
+			continue
+		}
 
-		// instance := &Instance{
-		// 	Name:       server.Name,
-		// 	Type:       server.Flavor["id"].(string),
-		// 	ImageID:    server.Image["id"].(string),
-		// 	Metadata:   server.Metadata,
-		// 	UserData:   createdOpts.UserData,
-		// 	InstanceID: server.ID,
-		// 	Status:     server.Status,
-		// }
+		instance := &Instance{
+			Name:       server.Name,
+			Type:       server.Flavor["id"].(string),
+			ImageID:    server.Image["id"].(string),
+			Metadata:   server.Metadata,
+			UserData:   createdOpts.UserData,
+			InstanceID: server.ID,
+			Status:     server.Status,
+		}
 
 		log.FromContext(ctx).Info("Creating instance OpenStack", "instanceName", instanceName, "flavor", instanceType.Name, "zone", zone)
 		//Mocked creation
-		instance := &Instance{
-			Name:       createdOpts.Name,
-			Type:       createdOpts.FlavorRef,
-			ImageID:    createdOpts.ImageRef,
-			Metadata:   createdOpts.Metadata,
-			UserData:   createdOpts.UserData,
-			InstanceID: "mock-server-id-123",
-			Status:     "BUILD",
-		}
+		// instance := &Instance{
+		// 	Name:       createdOpts.Name,
+		// 	Type:       createdOpts.FlavorRef,
+		// 	ImageID:    createdOpts.ImageRef,
+		// 	Metadata:   createdOpts.Metadata,
+		// 	UserData:   createdOpts.UserData,
+		// 	InstanceID: "mock-server-id-123",
+		// 	Status:     "BUILD",
+		// }
 
 		fmt.Printf("Instance successfully created | instanceName=%s | providerID=%s | status=%s | UserData=%s | MetaData=%s | ImageId=%s | Type=%s\n",
 			instance.Name, instance.InstanceID, instance.Status, string(instance.UserData), instance.Metadata, instance.ImageID, instance.Type)
