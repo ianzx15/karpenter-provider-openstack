@@ -67,11 +67,11 @@ func TestCreateInstance_Integration(t *testing.T) {
 	nodeClass := &v1openstack.OpenStackNodeClass{
 		Spec: v1openstack.OpenStackNodeClassSpec{
 
-			Networks: []string{"8e9133dd-0907-42f2-866d-c7ad2af7eb9c"},
+			Networks: []string{"8e9133dd-0907-42f2-866d-c7ad2af7eb9c"}, //Real openstack network
 			UserData: "#!/bin/bash\necho 'hello from integration test'",
 			ImageSelectorTerms: []v1openstack.OpenStackImageSelectorTerm{
 				{
-					ID: "62dee28f-987d-40f5-a308-051d59991da8",
+					ID: "62dee28f-987d-40f5-a308-051d59991da8", //Real openstack ubuntu 22.04 image ID
 				},
 			},
 		},
@@ -81,9 +81,9 @@ func TestCreateInstance_Integration(t *testing.T) {
 	}
 
 	instanceType := &cloudprovider.InstanceType{
-		Name: "7441c7d9-2648-4a33-907e-4d28c2270da3",
+		Name: "7441c7d9-2648-4a33-907e-4d28c2270da3", //Real Flavor ID for general.small
 		Requirements: scheduling.NewRequirements(
-			scheduling.NewRequirement("instance-type", "In", "7441c7d9-2648-4a33-907e-4d28c2270da3"),
+			scheduling.NewRequirement("instance-type", "In", "general.small"),
 		),
 	}
 
@@ -91,13 +91,7 @@ func TestCreateInstance_Integration(t *testing.T) {
 	realComputeClient := createRealComputeClient(t)
 
 	// 2. Cria o Provider e injeta o cliente real
-	// (Estou assumindo que seu DefaultProvider tem um campo 'computeClient')
-	// Se NewProvider não configurar o cliente, fazemos manualmente:
-	testProvider := &DefaultProvider{
-		computeClient: realComputeClient, // Injeção do cliente real
-		clusterName:   "test-cluster",
-		// kubeClient: nil, // Pode ser nil se o 'Create' não usar
-	}
+	testProvider := NewProvider(realComputeClient, "test-cluster")
 
 	// 3. Registra a função de limpeza
 	// Isso garante que a VM seja deletada DEPOIS que o teste rodar

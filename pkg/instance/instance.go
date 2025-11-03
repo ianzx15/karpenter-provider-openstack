@@ -44,7 +44,7 @@ func (p *DefaultProvider) Create(ctx context.Context, nodeClass *v1openstack.Ope
 			errs = append(errs, fmt.Errorf("failed to build instance options for %s: %w", instanceType.Name, err))
 			continue
 		}
-		//Real creation commented out
+		//Real creation
 		server, err := servers.Create(p.computeClient, createdOpts).Extract()
 		if err != nil {
 			errs = append(errs, fmt.Errorf("failed to create instance for %s: %w", instanceType.Name, err))
