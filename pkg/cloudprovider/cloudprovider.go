@@ -48,11 +48,22 @@ func (c *CloudProvider) Create(ctx context.Context, nodeClaim *karpv1.NodeClaim)
 	}
 
 	instancetypes, err := c.resolveInstanceTypes(ctx, nodeClaim, nodeClass)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(instancetypes) == 0 {
+		return nil, fmt.Errorf("no instance types available for the given NodeClaim requirements")
+	}
 
 	instance, err := c.instanceProvider.Create(ctx, nodeClass, nodeClaim, instancetypes)
 
+	if err != nil {
+		return nil, fmt.Errorf("creating instance: %w", err)
+	}
+
 	instanceType, _ := lo.Find(instancetypes, func(it *cloudprovider.InstanceType) bool {
-		return it.Name == instance.Type
+		return it.Name == instance.Name
 	})
 
 	nc := c.instanceToNodeClaim(instance, instanceType)
@@ -62,7 +73,7 @@ func (c *CloudProvider) Create(ctx context.Context, nodeClaim *karpv1.NodeClaim)
 func (c *CloudProvider) resolveInstanceTypes(ctx context.Context, nodeClaim *karpv1.NodeClaim, nodeClass *v1openstack.OpenStackNodeClass) ([]*cloudprovider.InstanceType, error) {
 	instanceTypes, err := c.instanceTypeProvider.List(ctx, nodeClass)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("listing instance types: %w", err)
 	}
 
 	reqs := scheduling.NewNodeSelectorRequirementsWithMinValues(nodeClaim.Spec.Requirements...)
@@ -100,7 +111,15 @@ func (c *CloudProvider) instanceToNodeClaim(instance *instance.Instance, instanc
 		nodeClaim.Status.Allocatable = lo.PickBy(instanceType.Allocatable(), resourceFilter)
 	}
 
-	return nil
+	labels["instance-type"] = instance.Type
+
+	nodeClaim.ObjectMeta.Labels = labels
+	nodeClaim.ObjectMeta.Annotations = annotations
+
+	nodeClaim.Status.ProviderID = fmt.Sprintf("openstack://%s/%s", instance.InstanceID, instance.Name)
+	nodeClaim.Status.ImageID = instance.ImageID
+
+	return nodeClaim
 }
 
 func (c *CloudProvider) Delete(ctx context.Context, nodeClaim *karpv1.NodeClaim) error {

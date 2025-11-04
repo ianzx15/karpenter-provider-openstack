@@ -1,4 +1,4 @@
-package instancetype_test
+package instancetype
 
 import (
 	"context"
@@ -7,13 +7,12 @@ import (
 
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/flavors"
 	"github.com/ianzx15/karpenter-provider-openstack/pkg/apis/v1openstack"
-	"github.com/ianzx15/karpenter-provider-openstack/pkg/instancetype"
 )
 
 func TestListInstanceTypes(t *testing.T) {
 	mockFlavors := []*flavors.Flavor{
 		{
-			Name:  "small",
+			Name:  "general.small",
 			VCPUs: 2,
 			RAM:   4096,
 		},
@@ -24,15 +23,15 @@ func TestListInstanceTypes(t *testing.T) {
 		},
 	}
 
-	provider := &instancetype.DefaultProvider{
+	provider := DefaultProvider{
 		InstanceTypesInfo: mockFlavors,
 	}
 
 	nodeClass := &v1openstack.OpenStackNodeClass{
 		Spec: v1openstack.OpenStackNodeClassSpec{
-			Flavor: "small",
+			Flavor: "genarl.small",
 			KubeletConfiguration: &v1openstack.KubeletConfiguration{
-				MaxPods: nil, 
+				MaxPods: nil,
 			},
 		},
 	}
