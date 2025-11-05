@@ -33,25 +33,41 @@ func (m *mockInstanceProvider) Create(ctx context.Context, nodeClass *v1openstac
 	return nil, fmt.Errorf("CreateFunc não implementado")
 }
 
-// TestCloudProviderCreate testa o "caminho feliz" da função Create
+
 func TestCloudProviderCreate(t *testing.T) {
-	// --- Arrange (Configuração) ---
+	
 	//Valores requeridos pelo kubernetes
 	const (
 		nodeClassName = "test-node-class"
 		nodeClaimName = "test-nodeclaim"
-		flavorName    = "general.small"
 		imageID       = "test-image-id-123"
 		instanceID    = "mock-instance-uuid-456"
+
+		flavorName = "general.small"
+
+		flavorTiny   = "general.tiny"
+		flavorMedium = "general.medium"
 	)
 
 	flavorsList := []*flavors.Flavor{
 		{
+			Name:  flavorTiny,
+			VCPUs: 1,
+			RAM:   2048,
+			ID:    "flavor-id-tiny",
+		},
+		// O flavor CORRETO
+		{
 			Name:  flavorName,
 			VCPUs: 2,
-			RAM:   4096, // MB
-			Disk:  20,
-			ID:    "flavor-id-123",
+			RAM:   4096,
+			ID:    "flavor-id-small",
+		},
+		{
+			Name:  flavorMedium,
+			VCPUs: 4,
+			RAM:   8192,
+			ID:    "flavor-id-medium",
 		},
 	}
 
@@ -95,7 +111,7 @@ func TestCloudProviderCreate(t *testing.T) {
 		},
 	}
 
-	// 4. Instância que o mockInstanceProvider deve retornar
+	// Instância que o mockInstanceProvider deve retornar
 	returnedInstance := &instance.Instance{
 		Name:       fmt.Sprintf("karpenter-%s", nodeClaimName),
 		Type:       flavorName, // Importante: Type deve bater com o Name do InstanceType
@@ -104,7 +120,7 @@ func TestCloudProviderCreate(t *testing.T) {
 		Status:     "BUILD",
 	}
 
-	// 5. Configurar o fake KubeClient
+	// Configurar o fake KubeClient
 	scheme := runtime.NewScheme()
 	require.NoError(t, v1openstack.AddToScheme(scheme))
 	require.NoError(t, v1openstack.AddToScheme(scheme))
@@ -114,7 +130,7 @@ func TestCloudProviderCreate(t *testing.T) {
 		WithObjects(nodeClass). // Pré-carrega o NodeClass no cliente falso
 		Build()
 
-	// 7. Configurar o mockInstanceProvider
+	// Configurar o mockInstanceProvider
 	mockIProvider := &mockInstanceProvider{
 		CreateFunc: func(ctx context.Context, nc *v1openstack.OpenStackNodeClass, n *karpv1.NodeClaim, its []*cloudprovider.InstanceType) (*instance.Instance, error) {
 			// Verifica se os argumentos corretos foram passados
@@ -126,15 +142,15 @@ func TestCloudProviderCreate(t *testing.T) {
 			return returnedInstance, nil
 		},
 	}
-	// 8. Instanciar o CloudProvider com os mocks
-	// (Veja a Nota 1 abaixo sobre por que instanciamos manualmente)
+	// Instanciar o CloudProvider com os mocks
+	
 	cp := &CloudProvider{
 		kubeClient:           fakeClient,
 		instanceTypeProvider: realITProvider,
 		instanceProvider:     mockIProvider,
 	}
 
-	// --- Act (Execução) ---
+	
 	createdNodeClaim, err := cp.Create(ctx, nodeClaim)
 
 	// --- Assert (Verificação) ---
@@ -146,7 +162,7 @@ func TestCloudProviderCreate(t *testing.T) {
 	assert.Equal(t, expectedProviderID, createdNodeClaim.Status.ProviderID)
 	assert.Equal(t, imageID, createdNodeClaim.Status.ImageID)
 
-	// Verificar Labels (Veja a Nota 2 abaixo)
+	// Verificar Labels 
 	assert.Equal(t, flavorName, createdNodeClaim.Labels[corev1.LabelInstanceTypeStable])
 	assert.Equal(t, "amd64", createdNodeClaim.Labels[corev1.LabelArchStable])
 	assert.Equal(t, "linux", createdNodeClaim.Labels[corev1.LabelOSStable])
@@ -160,8 +176,8 @@ func TestCloudProviderCreate(t *testing.T) {
 	expectedMem := resource.MustParse("4Gi")
 	actualMem := createdNodeClaim.Status.Capacity[corev1.ResourceMemory]
 	assert.Zerof(t, expectedMem.Cmp(actualMem), "Memory capacity mismatch: expected %s, got %s", expectedMem.String(), actualMem.String())
-
-	// --- Debug Print ---
+	assert.Equal(t, flavorName, createdNodeClaim.Labels[corev1.LabelInstanceTypeStable])
+	// Debug 
 	t.Log("==== DEBUG INFORMATION ====")
 
 	t.Logf("NodeClass Name: %s", nodeClass.Name)
