@@ -158,3 +158,11 @@ func (in *OpenStackNodeClass) DeepCopyObject() runtime.Object {
 	// in.DeepCopyInto(&out)
 	return &out
 }
+
+
+// +kubebuilder:object:root=true
+type OpenStackNodeClassList struct {
+    metav1.TypeMeta `json:",inline"`
+    metav1.ListMeta `json:"metadata,omitempty"`
+    Items           []OpenStackNodeClass `json:"items"`
+}

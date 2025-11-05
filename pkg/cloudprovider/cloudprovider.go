@@ -33,11 +33,13 @@ type CloudProvider struct {
 }
 
 func New(kubeClient client.Client, recorder events.Recorder,
-	instanceProvider instance.Provider) *CloudProvider {
+	instanceProvider instance.Provider, instanceTypeProvider instancetype.Provider) *CloudProvider {
 	return &CloudProvider{
 		kubeClient:       kubeClient,
 		recorder:         recorder,
 		instanceProvider: instanceProvider,
+		instanceTypeProvider: instanceTypeProvider,
+
 	}
 }
 
@@ -63,7 +65,7 @@ func (c *CloudProvider) Create(ctx context.Context, nodeClaim *karpv1.NodeClaim)
 	}
 
 	instanceType, _ := lo.Find(instancetypes, func(it *cloudprovider.InstanceType) bool {
-		return it.Name == instance.Name
+		return it.Name == instance.Type
 	})
 
 	nc := c.instanceToNodeClaim(instance, instanceType)
