@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/flavors"
 	"github.com/ianzx15/karpenter-provider-openstack/pkg/apis/v1openstack"
 	"github.com/ianzx15/karpenter-provider-openstack/pkg/instance"
-
+	"github.com/ianzx15/karpenter-provider-openstack/pkg/instancetype"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -57,6 +58,16 @@ func TestCloudProviderCreate(t *testing.T) {
 		instanceID    = "mock-instance-uuid-456"
 	)
 
+	flavorsList := []*flavors.Flavor{
+		{
+			Name:  flavorName,
+			VCPUs: 2,
+			RAM:   4096, // MB
+			Disk:  20,
+			ID:    "flavor-id-123",
+		},
+	}
+
 	ctx := context.Background()
 
 	// 1. Objeto NodeClass que esperamos que o KubeClient encontre
@@ -66,6 +77,12 @@ func TestCloudProviderCreate(t *testing.T) {
 			ImageSelectorTerms: []v1openstack.OpenStackImageSelectorTerm{{ID: imageID}},
 		},
 	}
+
+	realITProvider := &instancetype.DefaultProvider{
+		InstanceTypesInfo: flavorsList,
+	}
+
+	realITProvider.List(ctx, nodeClass)
 
 	// 2. Objeto NodeClaim que será passado para a função Create
 	nodeClaim := &karpv1.NodeClaim{
@@ -134,14 +151,6 @@ func TestCloudProviderCreate(t *testing.T) {
 		WithObjects(nodeClass). // Pré-carrega o NodeClass no cliente falso
 		Build()
 
-	// 6. Configurar o mockInstanceTypeProvider
-	mockITProvider := &mockInstanceTypeProvider{
-		ListFunc: func(ctx context.Context, nc *v1openstack.OpenStackNodeClass) ([]*cloudprovider.InstanceType, error) {
-			// Verifica se o NodeClass correto foi recebido
-			assert.Equal(t, nodeClassName, nc.Name)
-			return []*cloudprovider.InstanceType{testInstanceType}, nil
-		},
-	}
 
 	// 7. Configurar o mockInstanceProvider
 	mockIProvider := &mockInstanceProvider{
@@ -160,7 +169,7 @@ func TestCloudProviderCreate(t *testing.T) {
 	// (Veja a Nota 1 abaixo sobre por que instanciamos manualmente)
 	cp := &CloudProvider{
 		kubeClient:           fakeClient,
-		instanceTypeProvider: mockITProvider,
+		instanceTypeProvider: realITProvider,
 		instanceProvider:     mockIProvider,
 	}
 
@@ -183,8 +192,13 @@ func TestCloudProviderCreate(t *testing.T) {
 	assert.Equal(t, flavorName, createdNodeClaim.Labels["instance-type"])
 
 	// Verificar Capacity
-	assert.Equal(t, resource.MustParse("2"), createdNodeClaim.Status.Capacity[corev1.ResourceCPU])
-	assert.Equal(t, resource.MustParse("4Gi"), createdNodeClaim.Status.Capacity[corev1.ResourceMemory])
+	expectedCPU := resource.MustParse("2")
+    actualCPU := createdNodeClaim.Status.Capacity[corev1.ResourceCPU]
+    assert.Zerof(t, expectedCPU.Cmp(actualCPU), "CPU capacity mismatch: expected %s, got %s", expectedCPU.String(), actualCPU.String())
+
+    expectedMem := resource.MustParse("4Gi")
+    actualMem := createdNodeClaim.Status.Capacity[corev1.ResourceMemory]
+    assert.Zerof(t, expectedMem.Cmp(actualMem), "Memory capacity mismatch: expected %s, got %s", expectedMem.String(), actualMem.String())
 
 	// --- Debug Print ---
 	t.Log("==== DEBUG INFORMATION ====")
@@ -207,7 +221,7 @@ func TestCloudProviderCreate(t *testing.T) {
 	}
 
 	// Instance returned
-	t.Logf("Returned Instance: {ID: %s, Name: %s, ImageID: %s, Type: %s, Status: %s}", 
+	t.Logf("Returned Instance: {ID: %s, Name: %s, ImageID: %s, Type: %s, Status: %s}",
 		returnedInstance.InstanceID,
 		returnedInstance.Name,
 		returnedInstance.ImageID,
@@ -223,6 +237,5 @@ func TestCloudProviderCreate(t *testing.T) {
 	t.Logf("  Offerings: %+v", testInstanceType.Offerings)
 
 	t.Log("==== END DEBUG ====")
-
 
 }

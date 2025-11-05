@@ -56,6 +56,8 @@ func (p *DefaultProvider) List(ctx context.Context, nodeClass *v1openstack.OpenS
 			},
 			Capacity: capacity,
 
+			Overhead: &cloudprovider.InstanceTypeOverhead{},
+
 			Requirements: scheduling.NewRequirements(
 				scheduling.NewRequirement(
 					corev1.LabelInstanceTypeStable,
