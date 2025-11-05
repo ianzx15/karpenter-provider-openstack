@@ -19,8 +19,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-
-	"sigs.k8s.io/karpenter/pkg/apis"
 )
 
 // mockInstanceProvider é um mock para a interface instance.Provider
@@ -127,8 +125,7 @@ func TestCloudProviderCreate(t *testing.T) {
 
 	// 5. Configurar o fake KubeClient
 	scheme := runtime.NewScheme()
-	// require.NoError(t, v1openstack.AddToScheme(scheme))
-	require.NoError(t, apis.AddToScheme(scheme))
+	require.NoError(t, v1openstack.AddToScheme(scheme))
 	require.NoError(t, v1openstack.AddToScheme(scheme))
 
 	fakeClient := fake.NewClientBuilder().

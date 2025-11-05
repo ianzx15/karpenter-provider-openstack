@@ -2,10 +2,10 @@ package v1openstack
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // +kubebuilder:object:root=true
+// +kubebuilder:resource:scope=Cluster,shortName=osnc
 // +kubebuilder:subresource:status
 type OpenStackNodeClass struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -15,6 +15,7 @@ type OpenStackNodeClass struct {
 	Status OpenStackNodeClassStatus `json:"status,omitempty"`
 }
 
+// +k8s:deepcopy-gen=true
 type OpenStackNodeClassSpec struct {
 	// Flavor defines the OpenStack flavor to use for the node.
 	Flavor string `json:"flavor"`
@@ -65,7 +66,7 @@ type OpenStackNodeClassSpec struct {
 	// +optional
 	Metadata map[string]string `json:"metadata,omitempty"`
 }
-
+// +k8s:deepcopy-gen=true
 type OpenStackImageSelectorTerm struct {
 	// Alias specifies the image name or family in OpenStack Glance.
 	// +kubebuilder:validation:MaxLength=60
@@ -77,7 +78,7 @@ type OpenStackImageSelectorTerm struct {
 	// +optional
 	ID string `json:"id,omitempty"`
 }
-
+// +k8s:deepcopy-gen=true
 type KubeletConfiguration struct {
 	// ClusterDNS is a list of IP addresses for the cluster DNS server.
 	// +optional
@@ -134,6 +135,7 @@ type KubeletConfiguration struct {
 	CPUCFSQuota *bool `json:"cpuCFSQuota,omitempty"`
 }
 
+// +k8s:deepcopy-gen=true
 type Disk struct {
 	// SizeGiB is the size of the disk in GiB.
 	// +kubebuilder:validation:Minimum=10
@@ -148,21 +150,14 @@ type Disk struct {
 	Boot bool `json:"boot,omitempty"`
 }
 
+// +k8s:deepcopy-gen=true
 type OpenStackNodeClassStatus struct {
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
-// DeepCopyObject is not working correctly with kubebuilder for some reason, so we implement it manually.
-func (in *OpenStackNodeClass) DeepCopyObject() runtime.Object {
-	out := OpenStackNodeClass{}
-	// in.DeepCopyInto(&out)
-	return &out
-}
-
-
 // +kubebuilder:object:root=true
 type OpenStackNodeClassList struct {
-    metav1.TypeMeta `json:",inline"`
-    metav1.ListMeta `json:"metadata,omitempty"`
-    Items           []OpenStackNodeClass `json:"items"`
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []OpenStackNodeClass `json:"items"`
 }
