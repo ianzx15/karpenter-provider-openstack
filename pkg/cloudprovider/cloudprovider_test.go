@@ -48,7 +48,7 @@ func (m *mockInstanceTypeProvider) List(ctx context.Context, nodeClass *v1openst
 // TestCloudProviderCreate testa o "caminho feliz" da função Create
 func TestCloudProviderCreate(t *testing.T) {
 	// --- Arrange (Configuração) ---
-
+	//Valores requeridos pelo kubernetes
 	const (
 		nodeClassName = "test-node-class"
 		nodeClaimName = "test-nodeclaim"
@@ -99,6 +99,7 @@ func TestCloudProviderCreate(t *testing.T) {
 			corev1.ResourceMemory: resource.MustParse("4Gi"),
 			corev1.ResourcePods:   resource.MustParse("110"),
 		},
+		Overhead: &cloudprovider.InstanceTypeOverhead{},
 		Offerings: cloudprovider.Offerings{
 			{
 				Requirements: scheduling.NewRequirements(
@@ -184,4 +185,44 @@ func TestCloudProviderCreate(t *testing.T) {
 	// Verificar Capacity
 	assert.Equal(t, resource.MustParse("2"), createdNodeClaim.Status.Capacity[corev1.ResourceCPU])
 	assert.Equal(t, resource.MustParse("4Gi"), createdNodeClaim.Status.Capacity[corev1.ResourceMemory])
+
+	// --- Debug Print ---
+	t.Log("==== DEBUG INFORMATION ====")
+
+	t.Logf("NodeClass Name: %s", nodeClass.Name)
+	t.Logf("NodeClass ImageSelectorTerms: %+v", nodeClass.Spec.ImageSelectorTerms)
+
+	t.Logf("NodeClaim Name: %s", createdNodeClaim.Name)
+	t.Logf("NodeClaim ProviderID: %s", createdNodeClaim.Status.ProviderID)
+	t.Logf("NodeClaim ImageID: %s", createdNodeClaim.Status.ImageID)
+
+	t.Log("Labels:")
+	for k, v := range createdNodeClaim.Labels {
+		t.Logf("  %s = %s", k, v)
+	}
+
+	t.Log("Capacity:")
+	for k, v := range createdNodeClaim.Status.Capacity {
+		t.Logf("  %s = %s", k.String(), v.String())
+	}
+
+	// Instance returned
+	t.Logf("Returned Instance: {ID: %s, Name: %s, ImageID: %s, Type: %s, Status: %s}", 
+		returnedInstance.InstanceID,
+		returnedInstance.Name,
+		returnedInstance.ImageID,
+		returnedInstance.Type,
+		returnedInstance.Status,
+	)
+
+	// Instance Type used
+	t.Log("InstanceType:")
+	t.Logf("  Name: %s", testInstanceType.Name)
+	t.Logf("  Capacity: %+v", testInstanceType.Capacity)
+	t.Logf("  Requirements: %+v", testInstanceType.Requirements)
+	t.Logf("  Offerings: %+v", testInstanceType.Offerings)
+
+	t.Log("==== END DEBUG ====")
+
+
 }
