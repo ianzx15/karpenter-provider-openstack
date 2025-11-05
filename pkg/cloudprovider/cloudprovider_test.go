@@ -15,7 +15,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	karpv1 "sigs.k8s.io/karpenter/pkg/apis/v1"
 	"sigs.k8s.io/karpenter/pkg/cloudprovider"
-	"sigs.k8s.io/karpenter/pkg/scheduling"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -32,18 +31,6 @@ func (m *mockInstanceProvider) Create(ctx context.Context, nodeClass *v1openstac
 		return m.CreateFunc(ctx, nodeClass, nodeClaim, instanceTypes)
 	}
 	return nil, fmt.Errorf("CreateFunc não implementado")
-}
-
-// mockInstanceTypeProvider é um mock para a interface instancetype.Provider
-type mockInstanceTypeProvider struct {
-	ListFunc func(context.Context, *v1openstack.OpenStackNodeClass) ([]*cloudprovider.InstanceType, error)
-}
-
-func (m *mockInstanceTypeProvider) List(ctx context.Context, nodeClass *v1openstack.OpenStackNodeClass) ([]*cloudprovider.InstanceType, error) {
-	if m.ListFunc != nil {
-		return m.ListFunc(ctx, nodeClass)
-	}
-	return nil, fmt.Errorf("ListFunc não implementado")
 }
 
 // TestCloudProviderCreate testa o "caminho feliz" da função Create
@@ -108,30 +95,6 @@ func TestCloudProviderCreate(t *testing.T) {
 		},
 	}
 
-	// 3. Tipo de instância que o mockInstanceTypeProvider deve retornar
-	testInstanceType := &cloudprovider.InstanceType{
-		Name: flavorName,
-		Capacity: corev1.ResourceList{
-			corev1.ResourceCPU:    resource.MustParse("2"),
-			corev1.ResourceMemory: resource.MustParse("4Gi"),
-			corev1.ResourcePods:   resource.MustParse("110"),
-		},
-		Overhead: &cloudprovider.InstanceTypeOverhead{},
-		Offerings: cloudprovider.Offerings{
-			{
-				Requirements: scheduling.NewRequirements(
-					scheduling.NewRequirement(karpv1.CapacityTypeLabelKey, corev1.NodeSelectorOpIn, string(karpv1.CapacityTypeOnDemand)),
-				),
-				Available: true,
-			},
-		},
-		Requirements: scheduling.NewRequirements(
-			scheduling.NewRequirement(corev1.LabelInstanceTypeStable, corev1.NodeSelectorOpIn, flavorName),
-			scheduling.NewRequirement(corev1.LabelArchStable, corev1.NodeSelectorOpIn, "amd64"),
-			scheduling.NewRequirement(corev1.LabelOSStable, corev1.NodeSelectorOpIn, "linux"),
-		),
-	}
-
 	// 4. Instância que o mockInstanceProvider deve retornar
 	returnedInstance := &instance.Instance{
 		Name:       fmt.Sprintf("karpenter-%s", nodeClaimName),
@@ -151,20 +114,18 @@ func TestCloudProviderCreate(t *testing.T) {
 		WithObjects(nodeClass). // Pré-carrega o NodeClass no cliente falso
 		Build()
 
-
 	// 7. Configurar o mockInstanceProvider
 	mockIProvider := &mockInstanceProvider{
 		CreateFunc: func(ctx context.Context, nc *v1openstack.OpenStackNodeClass, n *karpv1.NodeClaim, its []*cloudprovider.InstanceType) (*instance.Instance, error) {
 			// Verifica se os argumentos corretos foram passados
 			assert.Equal(t, nodeClassName, nc.Name)
 			assert.Equal(t, nodeClaimName, n.Name)
-			require.Len(t, its, 1) // Garante que o filtro de instancetype funcionou
+			require.Len(t, its, 1)
 			assert.Equal(t, flavorName, its[0].Name)
 
 			return returnedInstance, nil
 		},
 	}
-
 	// 8. Instanciar o CloudProvider com os mocks
 	// (Veja a Nota 1 abaixo sobre por que instanciamos manualmente)
 	cp := &CloudProvider{
@@ -193,12 +154,12 @@ func TestCloudProviderCreate(t *testing.T) {
 
 	// Verificar Capacity
 	expectedCPU := resource.MustParse("2")
-    actualCPU := createdNodeClaim.Status.Capacity[corev1.ResourceCPU]
-    assert.Zerof(t, expectedCPU.Cmp(actualCPU), "CPU capacity mismatch: expected %s, got %s", expectedCPU.String(), actualCPU.String())
+	actualCPU := createdNodeClaim.Status.Capacity[corev1.ResourceCPU]
+	assert.Zerof(t, expectedCPU.Cmp(actualCPU), "CPU capacity mismatch: expected %s, got %s", expectedCPU.String(), actualCPU.String())
 
-    expectedMem := resource.MustParse("4Gi")
-    actualMem := createdNodeClaim.Status.Capacity[corev1.ResourceMemory]
-    assert.Zerof(t, expectedMem.Cmp(actualMem), "Memory capacity mismatch: expected %s, got %s", expectedMem.String(), actualMem.String())
+	expectedMem := resource.MustParse("4Gi")
+	actualMem := createdNodeClaim.Status.Capacity[corev1.ResourceMemory]
+	assert.Zerof(t, expectedMem.Cmp(actualMem), "Memory capacity mismatch: expected %s, got %s", expectedMem.String(), actualMem.String())
 
 	// --- Debug Print ---
 	t.Log("==== DEBUG INFORMATION ====")
@@ -228,14 +189,5 @@ func TestCloudProviderCreate(t *testing.T) {
 		returnedInstance.Type,
 		returnedInstance.Status,
 	)
-
-	// Instance Type used
-	t.Log("InstanceType:")
-	t.Logf("  Name: %s", testInstanceType.Name)
-	t.Logf("  Capacity: %+v", testInstanceType.Capacity)
-	t.Logf("  Requirements: %+v", testInstanceType.Requirements)
-	t.Logf("  Offerings: %+v", testInstanceType.Offerings)
-
-	t.Log("==== END DEBUG ====")
 
 }
