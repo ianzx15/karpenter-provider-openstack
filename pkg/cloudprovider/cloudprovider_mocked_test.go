@@ -48,7 +48,7 @@ func TestCloudProviderCreate(t *testing.T) {
 		flavorMedium = "general.medium"
 	)
 
-	flavorsList := []*flavors.Flavor{
+	flavorsList := []flavors.Flavor{
 		{
 			Name:  flavorTiny,
 			VCPUs: 1,

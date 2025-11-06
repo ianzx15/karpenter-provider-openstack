@@ -10,7 +10,7 @@ import (
 )
 
 func TestListInstanceTypes(t *testing.T) {
-	mockFlavors := []*flavors.Flavor{
+	mockFlavors := []flavors.Flavor{
 		{
 			Name:  "general.small",
 			VCPUs: 2,

@@ -78,14 +78,13 @@ func TestCloudProviderCreate_Integration(t *testing.T) {
 		flavorMedium = "69495bdc-cc5a-4596-9b0a-e2c30956df46"
 	)
 
-	flavorsList := []*flavors.Flavor{
+	flavorsList := []flavors.Flavor{
 		{
 			Name:  flavorLarge,
 			VCPUs: 4,
 			RAM:   8192,
 			ID:    "flavor-id-large",
 		},
-		// O flavor CORRETO
 		{
 			Name:  flavorSmall,
 			VCPUs: 1,
@@ -102,7 +101,7 @@ func TestCloudProviderCreate_Integration(t *testing.T) {
 
 	ctx := context.Background()
 
-	// Objeto NodeClass que esperamos que o KubeClient encontre
+	// Objeto NodeClass que se espera que o KubeClient encontre
 	nodeClass := &v1openstack.OpenStackNodeClass{
 		ObjectMeta: metav1.ObjectMeta{Name: nodeClassName},
 		Spec: v1openstack.OpenStackNodeClassSpec{
