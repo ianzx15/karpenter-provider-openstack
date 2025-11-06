@@ -1,9 +1,9 @@
 package main
 
 import (
-	"github.com/awslabs/operatorpkg/controller"
 	"github.com/ianzx15/karpenter-provider-openstack/pkg/cloudprovider"
 	"github.com/ianzx15/karpenter-provider-openstack/pkg/operator"
+	"github.com/samber/lo"
 	"sigs.k8s.io/karpenter/pkg/cloudprovider/metrics"
 	"sigs.k8s.io/karpenter/pkg/controllers/state"
 
@@ -12,7 +12,9 @@ import (
 )
 
 func main() {
-	ctx, op := operator.NewOperator(coreoperator.NewOperator())
+	baseCtx, baseOp := coreoperator.NewOperator()
+
+	ctx, op := operator.NewOperator(baseCtx, baseOp)
 
 	osCloudProvider := cloudprovider.New(
 		op.GetClient(),
@@ -20,10 +22,11 @@ func main() {
 		op.InstanceProvider,
 		op.InstanceTypeProvider,
 	)
+	lo.Must0(op.AddHealthzCheck("cloud-provider", osCloudProvider.LivenessProbe))
 
-	clouProvider := metrics.Decorate(osCloudProvider)
+	cloudProvider := metrics.Decorate(osCloudProvider)
 
-	clusterState := state.NewCluster(op.Clock, op.GetClient(), clouProvider)
+	clusterState := state.NewCluster(op.Clock, op.GetClient(), cloudProvider)
 
 	op.WithControllers(ctx, corecontrollers.NewControllers(
 		ctx,
@@ -31,9 +34,7 @@ func main() {
 		op.Clock,
 		op.GetClient(),
 		op.EventRecorder,
-		clouProvider,
+		cloudProvider,
 		clusterState,
-
-	)...).WithControllers(ctx, controllers
-
+	)...).Start(ctx)
 }
