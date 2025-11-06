@@ -14,11 +14,11 @@ func (e ErrNeitherImageIDNorImageNameProvided) Error() string {
 	return "One and only one of the image ID and the image name must be provided."
 }
 
-// ErrNeitherFlavorIDNorFlavorNameProvided is the error when neither the flavor
+// ErrNeitherFlavorIDNorflavorSmallProvided is the error when neither the flavor
 // ID nor the flavor name is provided for a server operation
-type ErrNeitherFlavorIDNorFlavorNameProvided struct{ gophercloud.ErrMissingInput }
+type ErrNeitherFlavorIDNorflavorSmallProvided struct{ gophercloud.ErrMissingInput }
 
-func (e ErrNeitherFlavorIDNorFlavorNameProvided) Error() string {
+func (e ErrNeitherFlavorIDNorflavorSmallProvided) Error() string {
 	return "One and only one of the flavor ID and the flavor name must be provided."
 }
 

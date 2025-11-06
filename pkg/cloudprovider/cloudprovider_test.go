@@ -2,92 +2,116 @@ package cloudprovider
 
 import (
 	"context"
-	"fmt"
+	"os"
 	"testing"
 
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/flavors"
+	"github.com/gophercloud/gophercloud/openstack/identity/v3/tokens"
 	"github.com/ianzx15/karpenter-provider-openstack/pkg/apis/v1openstack"
 	"github.com/ianzx15/karpenter-provider-openstack/pkg/instance"
 	"github.com/ianzx15/karpenter-provider-openstack/pkg/instancetype"
+	"github.com/joho/godotenv"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	karpv1 "sigs.k8s.io/karpenter/pkg/apis/v1"
-	"sigs.k8s.io/karpenter/pkg/cloudprovider"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-// mockInstanceProvider é um mock para a interface instance.Provider
-type mockInstanceProvider struct {
-	CreateFunc func(ctx context.Context, nodeClass *v1openstack.OpenStackNodeClass, nodeClaim *karpv1.NodeClaim, instanceTypes []*cloudprovider.InstanceType) (*instance.Instance, error)
-}
+func createRealComputeClient(t *testing.T) *gophercloud.ServiceClient {
 
-func (m *mockInstanceProvider) Create(ctx context.Context, nodeClass *v1openstack.OpenStackNodeClass, nodeClaim *karpv1.NodeClaim, instanceTypes []*cloudprovider.InstanceType) (*instance.Instance, error) {
-	if m.CreateFunc != nil {
-		return m.CreateFunc(ctx, nodeClass, nodeClaim, instanceTypes)
+	opts, err := openstack.AuthOptionsFromEnv()
+	if err != nil {
+		t.Fatalf("Falha ao ler opções de auth do ambiente: %v", err)
 	}
-	return nil, fmt.Errorf("CreateFunc não implementado")
+
+	provider, err := openstack.AuthenticatedClient(opts)
+	if err != nil {
+		t.Fatalf("Falha ao autenticar cliente: %v", err)
+	}
+
+	authResult := provider.GetAuthResult()
+	if authResult == nil {
+		t.Fatal("Falha ao obter resultado de autenticação (authResult is nil)")
+	}
+
+	_, ok := authResult.(tokens.CreateResult)
+	if !ok {
+		t.Fatalf("Resultado de autenticação não é do tipo esperado (tokens.CreateResult)")
+	}
+
+	computeClient, err := openstack.NewComputeV2(provider, gophercloud.EndpointOpts{
+		Region: os.Getenv("OS_REGION_NAME"),
+	})
+	if err != nil {
+		t.Fatalf("Falha ao criar cliente de Compute V2: %v", err)
+	}
+
+	return computeClient
 }
 
+func TestCloudProviderCreate_Integration(t *testing.T) {
+	err := godotenv.Load("../../.env")
+	if err != nil {
+		t.Fatalf("Erro ao carregar .env: %v", err)
+	}
+	if os.Getenv("RUN_INTEGRATION_TESTS") == "" {
+		t.Skip("Pulando teste de integração. Set RUN_INTEGRATION_TESTS=1 para executar.")
+	}
 
-func TestCloudProviderCreate(t *testing.T) {
-	
 	//Valores requeridos pelo kubernetes
 	const (
 		nodeClassName = "test-node-class"
-		nodeClaimName = "test-nodeclaim"
-		imageID       = "test-image-id-123"
+		nodeClaimName = "Karpenter-integ-test"
+		imageID       = "62dee28f-987d-40f5-a308-051d59991da8"
 		instanceID    = "mock-instance-uuid-456"
 
-		flavorName = "general.small"
+		flavorSmall = "7441c7d9-2648-4a33-907e-4d28c2270da3"
 
-		flavorTiny   = "general.tiny"
-		flavorMedium = "general.medium"
+		flavorLarge  = "be9875d8-f22b-426e-91e1-79f04c705c09"
+		flavorMedium = "69495bdc-cc5a-4596-9b0a-e2c30956df46"
 	)
 
 	flavorsList := []*flavors.Flavor{
 		{
-			Name:  flavorTiny,
-			VCPUs: 1,
-			RAM:   2048,
-			ID:    "flavor-id-tiny",
+			Name:  flavorLarge,
+			VCPUs: 4,
+			RAM:   8192,
+			ID:    "flavor-id-large",
 		},
 		// O flavor CORRETO
 		{
-			Name:  flavorName,
-			VCPUs: 2,
-			RAM:   4096,
+			Name:  flavorSmall,
+			VCPUs: 1,
+			RAM:   2048,
 			ID:    "flavor-id-small",
 		},
 		{
 			Name:  flavorMedium,
 			VCPUs: 4,
-			RAM:   8192,
+			RAM:   4096,
 			ID:    "flavor-id-medium",
 		},
 	}
 
 	ctx := context.Background()
 
-	// 1. Objeto NodeClass que esperamos que o KubeClient encontre
+	// Objeto NodeClass que esperamos que o KubeClient encontre
 	nodeClass := &v1openstack.OpenStackNodeClass{
 		ObjectMeta: metav1.ObjectMeta{Name: nodeClassName},
 		Spec: v1openstack.OpenStackNodeClassSpec{
 			ImageSelectorTerms: []v1openstack.OpenStackImageSelectorTerm{{ID: imageID}},
+			UserData:           "#!/bin/bash",
 		},
 	}
 
-	realITProvider := &instancetype.DefaultProvider{
-		InstanceTypesInfo: flavorsList,
-	}
-
-	realITProvider.List(ctx, nodeClass)
-
-	// 2. Objeto NodeClaim que será passado para a função Create
+	//Objeto NodeClaim que será passado para a função Create
 	nodeClaim := &karpv1.NodeClaim{
 		ObjectMeta: metav1.ObjectMeta{Name: nodeClaimName},
 		Spec: karpv1.NodeClaimSpec{
@@ -99,26 +123,27 @@ func TestCloudProviderCreate(t *testing.T) {
 					NodeSelectorRequirement: corev1.NodeSelectorRequirement{
 						Key:      corev1.LabelInstanceTypeStable,
 						Operator: corev1.NodeSelectorOpIn,
-						Values:   []string{flavorName},
+						Values:   []string{flavorMedium},
 					},
 				},
 			},
 			Resources: karpv1.ResourceRequirements{
 				Requests: corev1.ResourceList{
 					corev1.ResourceCPU: resource.MustParse("1"),
+					corev1.ResourceMemory: resource.MustParse("3Gi"),
 				},
 			},
 		},
 	}
 
-	// Instância que o mockInstanceProvider deve retornar
-	returnedInstance := &instance.Instance{
-		Name:       fmt.Sprintf("karpenter-%s", nodeClaimName),
-		Type:       flavorName, // Importante: Type deve bater com o Name do InstanceType
-		ImageID:    imageID,
-		InstanceID: instanceID,
-		Status:     "BUILD",
+	//Configurar provedores reais
+	realComputeClient := createRealComputeClient(t)
+
+	realITProvider := &instancetype.DefaultProvider{
+		InstanceTypesInfo: flavorsList,
 	}
+
+	realInstanceProvider := instance.NewProvider(realComputeClient, "test-cluster")
 
 	// Configurar o fake KubeClient
 	scheme := runtime.NewScheme()
@@ -127,83 +152,44 @@ func TestCloudProviderCreate(t *testing.T) {
 
 	fakeClient := fake.NewClientBuilder().
 		WithScheme(scheme).
-		WithObjects(nodeClass). // Pré-carrega o NodeClass no cliente falso
+		WithObjects(nodeClass).
 		Build()
 
-	// Configurar o mockInstanceProvider
-	mockIProvider := &mockInstanceProvider{
-		CreateFunc: func(ctx context.Context, nc *v1openstack.OpenStackNodeClass, n *karpv1.NodeClaim, its []*cloudprovider.InstanceType) (*instance.Instance, error) {
-			// Verifica se os argumentos corretos foram passados
-			assert.Equal(t, nodeClassName, nc.Name)
-			assert.Equal(t, nodeClaimName, n.Name)
-			require.Len(t, its, 1)
-			assert.Equal(t, flavorName, its[0].Name)
+	// Instanciar o CloudProvider
 
-			return returnedInstance, nil
-		},
-	}
-	// Instanciar o CloudProvider com os mocks
-	
 	cp := &CloudProvider{
 		kubeClient:           fakeClient,
 		instanceTypeProvider: realITProvider,
-		instanceProvider:     mockIProvider,
+		instanceProvider:     realInstanceProvider,
 	}
 
-	
+	t.Log("Executando cp.Create")
 	createdNodeClaim, err := cp.Create(ctx, nodeClaim)
 
 	// --- Assert (Verificação) ---
 	require.NoError(t, err, "A função Create não deve retornar erro")
 	require.NotNil(t, createdNodeClaim, "O NodeClaim retornado não deve ser nulo")
 
-	// Verificar Status
-	expectedProviderID := fmt.Sprintf("openstack://%s/%s", instanceID, returnedInstance.Name)
-	assert.Equal(t, expectedProviderID, createdNodeClaim.Status.ProviderID)
+	// Verificar Status (agora com dados reais)
+	assert.NotEmpty(t, createdNodeClaim.Status.ProviderID)
+	assert.Contains(t, createdNodeClaim.Status.ProviderID, "openstack://")
 	assert.Equal(t, imageID, createdNodeClaim.Status.ImageID)
 
-	// Verificar Labels 
-	assert.Equal(t, flavorName, createdNodeClaim.Labels[corev1.LabelInstanceTypeStable])
-	assert.Equal(t, "amd64", createdNodeClaim.Labels[corev1.LabelArchStable])
+	// Verificar Labels
+	assert.Equal(t, flavorSmall, createdNodeClaim.Labels[corev1.LabelInstanceTypeStable])
+	assert.Equal(t, "amd64", createdNodeClaim.Labels[corev1.LabelArchStable]) // Assumindo amd64
 	assert.Equal(t, "linux", createdNodeClaim.Labels[corev1.LabelOSStable])
-	assert.Equal(t, flavorName, createdNodeClaim.Labels["instance-type"])
+	assert.Equal(t, flavorSmall, createdNodeClaim.Labels["instance-type"])
 
 	// Verificar Capacity
-	expectedCPU := resource.MustParse("2")
+	expectedCPU := resource.MustParse("2") // Baseado no 'general.small'
 	actualCPU := createdNodeClaim.Status.Capacity[corev1.ResourceCPU]
 	assert.Zerof(t, expectedCPU.Cmp(actualCPU), "CPU capacity mismatch: expected %s, got %s", expectedCPU.String(), actualCPU.String())
 
-	expectedMem := resource.MustParse("4Gi")
+	expectedMem := resource.MustParse("4Gi") // Baseado no 'general.small'
 	actualMem := createdNodeClaim.Status.Capacity[corev1.ResourceMemory]
 	assert.Zerof(t, expectedMem.Cmp(actualMem), "Memory capacity mismatch: expected %s, got %s", expectedMem.String(), actualMem.String())
-	assert.Equal(t, flavorName, createdNodeClaim.Labels[corev1.LabelInstanceTypeStable])
-	// Debug 
-	t.Log("==== DEBUG INFORMATION ====")
 
-	t.Logf("NodeClass Name: %s", nodeClass.Name)
-	t.Logf("NodeClass ImageSelectorTerms: %+v", nodeClass.Spec.ImageSelectorTerms)
-
-	t.Logf("NodeClaim Name: %s", createdNodeClaim.Name)
-	t.Logf("NodeClaim ProviderID: %s", createdNodeClaim.Status.ProviderID)
-	t.Logf("NodeClaim ImageID: %s", createdNodeClaim.Status.ImageID)
-
-	t.Log("Labels:")
-	for k, v := range createdNodeClaim.Labels {
-		t.Logf("  %s = %s", k, v)
-	}
-
-	t.Log("Capacity:")
-	for k, v := range createdNodeClaim.Status.Capacity {
-		t.Logf("  %s = %s", k.String(), v.String())
-	}
-
-	// Instance returned
-	t.Logf("Returned Instance: {ID: %s, Name: %s, ImageID: %s, Type: %s, Status: %s}",
-		returnedInstance.InstanceID,
-		returnedInstance.Name,
-		returnedInstance.ImageID,
-		returnedInstance.Type,
-		returnedInstance.Status,
-	)
+	t.Logf("Teste de integração do CloudProvider concluído com sucesso. ProviderID: %s", createdNodeClaim.Status.ProviderID)
 
 }
