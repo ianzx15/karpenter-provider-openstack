@@ -53,12 +53,12 @@ func (p *DefaultProvider) Create(ctx context.Context, nodeClass *v1openstack.Ope
 
 		instance := &Instance{
 			Name:       server.Name,
-			Type:       server.Flavor["id"].(string),
-			ImageID:    server.Image["id"].(string),
-			Metadata:   server.Metadata,
-			UserData:   createdOpts.UserData,
-			InstanceID: server.ID,
-			Status:     server.Status,
+            Type:       instanceType.Name,  
+            ImageID:    createdOpts.ImageRef,
+            Metadata:   server.Metadata,
+            UserData:   createdOpts.UserData,
+            InstanceID: server.ID,
+            Status:     server.Status,
 		}
 
 		log.FromContext(ctx).Info("Creating instance OpenStack", "instanceName", instanceName, "flavor", instanceType.Name, "zone", zone)

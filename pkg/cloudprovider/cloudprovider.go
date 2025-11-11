@@ -6,10 +6,10 @@ import (
 	"net/http"
 
 	"github.com/awslabs/operatorpkg/status"
-	"github.com/cloudpilot-ai/karpenter-provider-gcp/pkg/utils"
 	"github.com/ianzx15/karpenter-provider-openstack/pkg/apis/v1openstack"
 	"github.com/ianzx15/karpenter-provider-openstack/pkg/instance"
 	"github.com/ianzx15/karpenter-provider-openstack/pkg/instancetype"
+	"github.com/ianzx15/karpenter-provider-openstack/pkg/utils"
 	"github.com/samber/lo"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -35,11 +35,10 @@ type CloudProvider struct {
 func New(kubeClient client.Client, recorder events.Recorder,
 	instanceProvider instance.Provider, instanceTypeProvider instancetype.Provider) *CloudProvider {
 	return &CloudProvider{
-		kubeClient:       kubeClient,
-		recorder:         recorder,
-		instanceProvider: instanceProvider,
+		kubeClient:           kubeClient,
+		recorder:             recorder,
+		instanceProvider:     instanceProvider,
 		instanceTypeProvider: instanceTypeProvider,
-
 	}
 }
 

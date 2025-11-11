@@ -21,7 +21,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-// mockInstanceProvider é um mock para a interface instance.Provider
+// mockInstanceProvider um mock para a interface instance.Provider
 type mockInstanceProvider struct {
 	CreateFunc func(ctx context.Context, nodeClass *v1openstack.OpenStackNodeClass, nodeClaim *karpv1.NodeClaim, instanceTypes []*cloudprovider.InstanceType) (*instance.Instance, error)
 }
@@ -44,29 +44,28 @@ func TestCloudProviderCreate(t *testing.T) {
 
 		flavorSmall = "general.small"
 
-		flavorTiny   = "general.tiny"
+		flavorLarge   = "general.large"
 		flavorMedium = "general.medium"
 	)
 
 	flavorsList := []flavors.Flavor{
 		{
-			Name:  flavorTiny,
+			Name:  flavorLarge,
 			VCPUs: 1,
 			RAM:   2048,
-			ID:    "flavor-id-tiny",
+			ID:    "be9875d8-f22b-426e-91e1-79f04c705c09",
 		},
-		// O flavor CORRETO
 		{
 			Name:  flavorSmall,
 			VCPUs: 2,
 			RAM:   4096,
-			ID:    "flavor-id-small",
+			ID:    "7441c7d9-2648-4a33-907e-4d28c2270da3",
 		},
 		{
 			Name:  flavorMedium,
 			VCPUs: 4,
 			RAM:   8192,
-			ID:    "flavor-id-medium",
+			ID:    "69495bdc-cc5a-4596-9b0a-e2c30956df46",
 		},
 	}
 

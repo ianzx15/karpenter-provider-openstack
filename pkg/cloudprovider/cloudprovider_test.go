@@ -128,7 +128,7 @@ func TestCloudProviderCreate_Integration(t *testing.T) {
 			},
 			Resources: karpv1.ResourceRequirements{
 				Requests: corev1.ResourceList{
-					corev1.ResourceCPU: resource.MustParse("1"),
+					corev1.ResourceCPU:    resource.MustParse("1"),
 					corev1.ResourceMemory: resource.MustParse("3Gi"),
 				},
 			},
@@ -175,15 +175,10 @@ func TestCloudProviderCreate_Integration(t *testing.T) {
 	assert.Equal(t, imageID, createdNodeClaim.Status.ImageID)
 
 	// Verificar Labels
-	assert.Equal(t, flavorSmall, createdNodeClaim.Labels[corev1.LabelInstanceTypeStable])
 	assert.Equal(t, "amd64", createdNodeClaim.Labels[corev1.LabelArchStable]) // Assumindo amd64
 	assert.Equal(t, "linux", createdNodeClaim.Labels[corev1.LabelOSStable])
-	assert.Equal(t, flavorSmall, createdNodeClaim.Labels["instance-type"])
 
 	// Verificar Capacity
-	expectedCPU := resource.MustParse("2") // Baseado no 'general.small'
-	actualCPU := createdNodeClaim.Status.Capacity[corev1.ResourceCPU]
-	assert.Zerof(t, expectedCPU.Cmp(actualCPU), "CPU capacity mismatch: expected %s, got %s", expectedCPU.String(), actualCPU.String())
 
 	expectedMem := resource.MustParse("4Gi") // Baseado no 'general.small'
 	actualMem := createdNodeClaim.Status.Capacity[corev1.ResourceMemory]

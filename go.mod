@@ -6,7 +6,6 @@ replace github.com/ianzx15/karpenter-provider-openstack => ./
 
 require (
 	github.com/awslabs/operatorpkg v0.0.0-20250909182303-e8e550b6f339
-	github.com/cloudpilot-ai/karpenter-provider-gcp v0.0.0-20251027021902-a0bd97f74d96
 	github.com/gophercloud/gophercloud v1.14.1
 	github.com/joho/godotenv v1.5.1
 	github.com/samber/lo v1.51.0
