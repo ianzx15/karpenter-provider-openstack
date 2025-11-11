@@ -5,18 +5,18 @@ go 1.25.3
 replace github.com/ianzx15/karpenter-provider-openstack => ./
 
 require (
-	github.com/awslabs/operatorpkg v0.0.0-20250909182303-e8e550b6f339
 	github.com/gophercloud/gophercloud v1.14.1
 	github.com/joho/godotenv v1.5.1
 	github.com/samber/lo v1.51.0
 	github.com/stretchr/testify v1.11.1
 	k8s.io/api v0.34.1
 	k8s.io/apimachinery v0.34.1
-	sigs.k8s.io/controller-runtime v0.22.3
-	sigs.k8s.io/karpenter v1.5.0
+	sigs.k8s.io/controller-runtime v0.22.1
+	sigs.k8s.io/karpenter v1.8.0
 )
 
 require (
+	github.com/awslabs/operatorpkg v0.0.0-20250909182303-e8e550b6f339 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
@@ -50,7 +50,7 @@ require (
 	github.com/prometheus/common v0.66.1 // indirect
 	github.com/prometheus/procfs v0.16.1 // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
-	github.com/spf13/cobra v1.9.1 // indirect
+	github.com/spf13/cobra v1.10.1 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
@@ -73,6 +73,7 @@ require (
 	k8s.io/client-go v0.34.1 // indirect
 	k8s.io/cloud-provider v0.34.1 // indirect
 	k8s.io/component-base v0.34.1 // indirect
+	k8s.io/component-helpers v0.34.1 // indirect
 	k8s.io/csi-translation-lib v0.34.1 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20250710124328-f3f2b991d03b // indirect

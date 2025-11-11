@@ -32,6 +32,10 @@ type CloudProvider struct {
 	instanceProvider     instance.Provider
 }
 
+func (c *CloudProvider) GetSupportedNodeClasses() []status.Object {
+	return nil
+}
+
 func New(kubeClient client.Client, recorder events.Recorder,
 	instanceProvider instance.Provider, instanceTypeProvider instancetype.Provider) *CloudProvider {
 	return &CloudProvider{
@@ -104,7 +108,6 @@ func (c *CloudProvider) instanceToNodeClaim(instance *instance.Instance, instanc
 
 	if instanceType != nil {
 		labels = utils.GetAllSingleValuedRequirementLabels(instanceType)
-
 		resourceFilter := func(name corev1.ResourceName, value resource.Quantity) bool {
 			return !resources.IsZero(value)
 		}
@@ -149,10 +152,6 @@ func (c *CloudProvider) RepairPolicies() []cloudprovider.RepairPolicy {
 
 func (c *CloudProvider) Name() string {
 	return "openstack"
-}
-
-func (c *CloudProvider) GetSupportedNodeClasses() []status.Object {
-	return nil
 }
 
 func (c *CloudProvider) LivenessProbe(req *http.Request) error {

@@ -1,5 +1,5 @@
 /*
-Copyright 2017 The Kubernetes Authors.
+Copyright The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,7 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package controllertest contains fake informers for testing controllers
-// When in doubt, it's almost always better to test against a real API server
-// using envtest.Environment.
-package controllertest
+package v1alpha1
+
+import "sigs.k8s.io/karpenter/pkg/apis"
+
+const (
+	PriceOverlayAppliedAnnotationKey    = apis.Group + "/price-overlay-applied"
+	CapacityOverlayAppliedAnnotationKey = apis.Group + "/capacity-overlay-applied"
+)
