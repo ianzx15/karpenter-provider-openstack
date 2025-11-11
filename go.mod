@@ -5,6 +5,7 @@ go 1.25.3
 replace github.com/ianzx15/karpenter-provider-openstack => ./
 
 require (
+	github.com/awslabs/operatorpkg v0.0.0-20250909182303-e8e550b6f339
 	github.com/gophercloud/gophercloud v1.14.1
 	github.com/joho/godotenv v1.5.1
 	github.com/samber/lo v1.51.0
@@ -16,7 +17,6 @@ require (
 )
 
 require (
-	github.com/awslabs/operatorpkg v0.0.0-20250909182303-e8e550b6f339 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect

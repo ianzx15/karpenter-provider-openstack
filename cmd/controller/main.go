@@ -6,6 +6,7 @@ import (
 	"github.com/samber/lo"
 	"sigs.k8s.io/karpenter/pkg/cloudprovider/metrics"
 	"sigs.k8s.io/karpenter/pkg/controllers/state"
+	"sigs.k8s.io/karpenter/pkg/controllers/nodeoverlay"
 
 	corecontrollers "sigs.k8s.io/karpenter/pkg/controllers"
 	coreoperator "sigs.k8s.io/karpenter/pkg/operator"
@@ -27,14 +28,16 @@ func main() {
 	cloudProvider := metrics.Decorate(osCloudProvider)
 
 	clusterState := state.NewCluster(op.Clock, op.GetClient(), cloudProvider)
-
+	instanceTypeStore := nodeoverlay.NewInstanceTypeStore()
 	op.WithControllers(ctx, corecontrollers.NewControllers(
 		ctx,
 		op.Manager,
 		op.Clock,
 		op.GetClient(),
 		op.EventRecorder,
+		osCloudProvider,
 		cloudProvider,
 		clusterState,
+		instanceTypeStore,
 	)...).Start(ctx)
 }
