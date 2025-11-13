@@ -56,6 +56,8 @@ func (p *DefaultProvider) createOffering() cloudprovider.Offering {
 }
 
 func (p *DefaultProvider) List(ctx context.Context, nodeClass *v1openstack.OpenStackNodeClass) ([]*cloudprovider.InstanceType, error) {
+	logger := log.FromContext(ctx) // Você pode precisar adicionar esta linha se 'logger' não estiver definido
+    logger.Info("DEBUG: A função instancetype.List() FOI CHAMADA!")
 	instanceTypes := []*cloudprovider.InstanceType{}
 
 	for _, flavor := range p.InstanceTypesInfo {
@@ -89,9 +91,15 @@ func (p *DefaultProvider) List(ctx context.Context, nodeClass *v1openstack.OpenS
 				),
 				scheduling.NewRequirement(corev1.LabelArchStable, corev1.NodeSelectorOpIn, "amd64"),
 				scheduling.NewRequirement(corev1.LabelOSStable, corev1.NodeSelectorOpIn, "linux"),
+				scheduling.NewRequirement(
+					karpv1.CapacityTypeLabelKey,
+					corev1.NodeSelectorOpIn,
+					string(karpv1.CapacityTypeOnDemand),
+				),
 			),
 		}
 		instanceTypes = append(instanceTypes, instanceType)
 	}
+	logger.Info(fmt.Sprintf("DEBUG: instancetype.List() está retornando %d tipos de instância.", len(instanceTypes)))
 	return instanceTypes, nil
 }

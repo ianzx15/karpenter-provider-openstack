@@ -29,7 +29,6 @@ func TestListInstanceTypes(t *testing.T) {
 
 	nodeClass := &v1openstack.OpenStackNodeClass{
 		Spec: v1openstack.OpenStackNodeClassSpec{
-			Flavor: "genarl.small",
 			KubeletConfiguration: &v1openstack.KubeletConfiguration{
 				MaxPods: nil,
 			},

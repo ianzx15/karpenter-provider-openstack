@@ -12,6 +12,7 @@ import (
 	karpv1 "sigs.k8s.io/karpenter/pkg/apis/v1"
 	"sigs.k8s.io/karpenter/pkg/operator"
 
+	"github.com/ianzx15/karpenter-provider-openstack/pkg/apis/v1openstack"
 	"github.com/ianzx15/karpenter-provider-openstack/pkg/instance"
 	"github.com/ianzx15/karpenter-provider-openstack/pkg/instancetype"
 )
@@ -76,7 +77,7 @@ func NewOperator(ctx context.Context, op *operator.Operator) (context.Context, *
 	}
 
 	instanceProvider := instance.NewProvider(computeClient, clusterName)
-
+	lo.Must0(v1openstack.AddToScheme(op.Manager.GetScheme()))
 	// 4. Retornar o Operador estendido
 	return ctx, &Operator{
 		Operator:             op,

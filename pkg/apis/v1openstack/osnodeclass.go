@@ -18,7 +18,7 @@ type OpenStackNodeClass struct {
 // +k8s:deepcopy-gen=true
 type OpenStackNodeClassSpec struct {
 	// Flavor defines the OpenStack flavor to use for the node.
-	Flavor string `json:"flavor"`
+	// Flavor string `json:"flavor"`
 
 	// KeyPair is the OpenStack key pair name to assign to the instance
 	// +optional
@@ -66,6 +66,7 @@ type OpenStackNodeClassSpec struct {
 	// +optional
 	Metadata map[string]string `json:"metadata,omitempty"`
 }
+
 // +k8s:deepcopy-gen=true
 type OpenStackImageSelectorTerm struct {
 	// Alias specifies the image name or family in OpenStack Glance.
@@ -78,6 +79,7 @@ type OpenStackImageSelectorTerm struct {
 	// +optional
 	ID string `json:"id,omitempty"`
 }
+
 // +k8s:deepcopy-gen=true
 type KubeletConfiguration struct {
 	// ClusterDNS is a list of IP addresses for the cluster DNS server.

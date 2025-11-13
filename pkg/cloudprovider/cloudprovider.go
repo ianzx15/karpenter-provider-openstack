@@ -126,6 +126,10 @@ func (c *CloudProvider) instanceToNodeClaim(instance *instance.Instance, instanc
 	return nodeClaim
 }
 
+func (c *CloudProvider) GetNodeClass() client.Object {
+	return &v1openstack.OpenStackNodeClass{}
+}
+
 func (c *CloudProvider) Delete(ctx context.Context, nodeClaim *karpv1.NodeClaim) error {
 	return nil
 }
@@ -139,7 +143,17 @@ func (c *CloudProvider) Get(ctx context.Context, providerID string) (*karpv1.Nod
 }
 
 func (c *CloudProvider) GetInstanceTypes(ctx context.Context, nodePool *karpv1.NodePool) ([]*cloudprovider.InstanceType, error) {
-	return nil, nil
+	ref := nodePool.Spec.Template.Spec.NodeClassRef
+	if ref == nil {
+		return nil, fmt.Errorf("nodepool %s missing NodeClassRef", nodePool.Name)
+	}
+
+	nodeClass := &v1openstack.OpenStackNodeClass{}
+	if err := c.kubeClient.Get(ctx, types.NamespacedName{Name: ref.Name}, nodeClass); err != nil {
+		return nil, fmt.Errorf("getting NodeClass %s: %w", ref.Name, err)
+	}
+
+	return c.instanceTypeProvider.List(ctx, nodeClass)
 }
 
 func (c *CloudProvider) IsDrifted(ctx context.Context, nodeClaim *karpv1.NodeClaim) (cloudprovider.DriftReason, error) {
