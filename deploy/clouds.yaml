@@ -3,7 +3,7 @@ clouds:
     auth:
       auth_url: "https://cloud6.lsd.ufcg.edu.br:5000"
       username: "ian.rodrigues"
-      password: ""
+      password: "senha"
       project_id: "ibm-flex"
       user_domain_name: "LSD"
     region_name: "RegionOne"

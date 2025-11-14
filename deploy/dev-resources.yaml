@@ -33,7 +33,7 @@ spec:
         kind: OpenStackNodeClass
         name: default
   limits:
-    cpu: 100
+    cpu: 10
   disruption:
     consolidationPolicy: WhenEmptyOrUnderutilized
     consolidateAfter: 1m
