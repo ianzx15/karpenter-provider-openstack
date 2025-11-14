@@ -1,4 +1,4 @@
 // +k8s:deepcopy-gen=package
-// +groupName=karpenter.ianzx15.github.com
+// +groupName=karpenter.k8s.openstack
 
 package v1openstack

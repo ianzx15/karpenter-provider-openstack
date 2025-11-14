@@ -33,7 +33,7 @@ type CloudProvider struct {
 }
 
 func (c *CloudProvider) GetSupportedNodeClasses() []status.Object {
-	return nil
+	return []status.Object{&v1openstack.OpenStackNodeClass{}}
 }
 
 func New(kubeClient client.Client, recorder events.Recorder,

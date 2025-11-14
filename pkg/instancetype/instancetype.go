@@ -57,10 +57,10 @@ func (p *DefaultProvider) createOffering() cloudprovider.Offering {
 
 func (p *DefaultProvider) List(ctx context.Context, nodeClass *v1openstack.OpenStackNodeClass) ([]*cloudprovider.InstanceType, error) {
 	logger := log.FromContext(ctx) // Você pode precisar adicionar esta linha se 'logger' não estiver definido
-    logger.Info("DEBUG: A função instancetype.List() FOI CHAMADA!")
 	instanceTypes := []*cloudprovider.InstanceType{}
 
 	for _, flavor := range p.InstanceTypesInfo {
+
 		maxPods := int64(110)
 		if nodeClass.Spec.KubeletConfiguration != nil && nodeClass.Spec.KubeletConfiguration.MaxPods != nil {
 			maxPods = int64(*nodeClass.Spec.KubeletConfiguration.MaxPods)
@@ -72,23 +72,29 @@ func (p *DefaultProvider) List(ctx context.Context, nodeClass *v1openstack.OpenS
 			corev1.ResourcePods:   *resource.NewQuantity(maxPods, resource.DecimalSI),
 		}
 
+		systemReserved := corev1.ResourceList{
+			corev1.ResourceCPU:    resource.MustParse("100m"),
+			corev1.ResourceMemory: resource.MustParse("0.2Gi"),
+		}
+
 		offering := p.createOffering()
 
 		instanceType := &cloudprovider.InstanceType{
-			Name: flavor.Name,
+			Name: flavor.ID,
 			Offerings: cloudprovider.Offerings{
 				&offering,
 			},
 			Capacity: capacity,
 
-			Overhead: &cloudprovider.InstanceTypeOverhead{},
+			Overhead: &cloudprovider.InstanceTypeOverhead{
+				KubeReserved: systemReserved,
+			},
 
 			Requirements: scheduling.NewRequirements(
-				scheduling.NewRequirement(
-					corev1.LabelInstanceTypeStable,
-					corev1.NodeSelectorOpIn,
-					flavor.Name,
-				),
+				// scheduling.NewRequirement(
+				// 	corev1.LabelInstanceTypeStable,
+				// 	corev1.NodeSelectorOpIn,
+				// ),
 				scheduling.NewRequirement(corev1.LabelArchStable, corev1.NodeSelectorOpIn, "amd64"),
 				scheduling.NewRequirement(corev1.LabelOSStable, corev1.NodeSelectorOpIn, "linux"),
 				scheduling.NewRequirement(
@@ -99,7 +105,14 @@ func (p *DefaultProvider) List(ctx context.Context, nodeClass *v1openstack.OpenS
 			),
 		}
 		instanceTypes = append(instanceTypes, instanceType)
+		fmt.Printf(">>> DEBUG FLAVOR [%s] | ID: %s | CPU: %v | Mem: %v | Labels: %v\n",
+			flavor.Name,
+			flavor.ID,
+			instanceType.Capacity[corev1.ResourceCPU],
+			instanceType.Capacity[corev1.ResourceMemory],
+			instanceType.Requirements)
 	}
 	logger.Info(fmt.Sprintf("DEBUG: instancetype.List() está retornando %d tipos de instância.", len(instanceTypes)))
+
 	return instanceTypes, nil
 }

@@ -1,6 +1,7 @@
 package v1openstack
 
 import (
+	"github.com/awslabs/operatorpkg/status"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -154,7 +155,7 @@ type Disk struct {
 
 // +k8s:deepcopy-gen=true
 type OpenStackNodeClassStatus struct {
-	Conditions []metav1.Condition `json:"conditions,omitempty"`
+	Conditions []status.Condition `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -162,4 +163,21 @@ type OpenStackNodeClassList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []OpenStackNodeClass `json:"items"`
+}
+
+// StatusConditions retorna um ConditionSet vinculado a este objeto.
+// "Ready" é a condição padrão que define se o objeto está saudável.
+func (in *OpenStackNodeClass) StatusConditions() status.ConditionSet {
+    // 1. NewReadyConditions("Ready") define a regra.
+    // 2. .For(in) vincula a regra a ESTA instância do objeto.
+    return status.NewReadyConditions("Ready").For(in)
+}
+
+// MANTENHA ESTES DOIS ABAIXO (Obrigatórios para o .For() funcionar)
+func (in *OpenStackNodeClass) GetConditions() []status.Condition {
+    return in.Status.Conditions
+}
+
+func (in *OpenStackNodeClass) SetConditions(conditions []status.Condition) {
+    in.Status.Conditions = conditions
 }

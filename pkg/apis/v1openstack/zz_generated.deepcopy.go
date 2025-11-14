@@ -5,6 +5,7 @@
 package v1openstack
 
 import (
+	"github.com/awslabs/operatorpkg/status"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -242,7 +243,7 @@ func (in *OpenStackNodeClassStatus) DeepCopyInto(out *OpenStackNodeClassStatus) 
 	*out = *in
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
-		*out = make([]v1.Condition, len(*in))
+		*out = make([]status.Condition, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}

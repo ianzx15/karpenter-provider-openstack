@@ -83,13 +83,13 @@ func (p *DefaultProvider) Create(ctx context.Context, nodeClass *v1openstack.Ope
 
 func (p *DefaultProvider) buildInstanceOpts(ctx context.Context, nodeClaim *karpv1.NodeClaim, nodeClass *v1openstack.OpenStackNodeClass, instanceType *cloudprovider.InstanceType, zone, instanceName, capacityType string) (servers.CreateOpts, error) {
 	imageID := nodeClass.Spec.ImageSelectorTerms[0].ID
-	flavorSmall := instanceType.Name
+	flavor := instanceType.Name
 
 	userData := []byte(nodeClass.Spec.UserData)
 
 	return servers.CreateOpts{
 		Name:      instanceName,
-		FlavorRef: flavorSmall,
+		FlavorRef: flavor,
 		ImageRef:  imageID,
 		UserData:  userData,
 	}, nil
