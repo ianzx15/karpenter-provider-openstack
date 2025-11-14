@@ -11,10 +11,6 @@ import (
 	corecontrollers "sigs.k8s.io/karpenter/pkg/controllers"
 	coreoperator "sigs.k8s.io/karpenter/pkg/operator"
 
-	// ---------------------------------------------------------
-	// 1. ADICIONE ESTE IMPORT
-	// (Certifique-se que este caminho bate com o seu go.mod)
-	// ---------------------------------------------------------
 	v1openstack "github.com/ianzx15/karpenter-provider-openstack/pkg/apis/v1openstack"
 )
 
