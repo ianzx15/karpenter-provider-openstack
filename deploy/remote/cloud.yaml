@@ -1,0 +1,11 @@
+clouds:
+  openstack:
+    auth:
+      auth_url: "https://cloud6.lsd.ufcg.edu.br:5000"
+      username: "ian.rodrigues"
+      password: "@avbY84mct7x"
+      project_id: "TCCs"
+      user_domain_name: "LSD"
+    region_name: "RegionOne"
+    interface: "public"
+    identity_api_version: 3

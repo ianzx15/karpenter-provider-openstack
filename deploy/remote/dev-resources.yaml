@@ -1,0 +1,39 @@
+apiVersion: karpenter.k8s.openstack/v1openstack
+kind: OpenStackNodeClass
+metadata:
+  name: default
+spec:
+  imageSelectorTerms:
+    - id: "62dee28f-987d-40f5-a308-051d59991da8"
+  networks:
+    - "8e9133dd-0907-42f2-866d-c7ad2af7eb9c"
+  securityGroups:
+    - "default"
+  metadata:
+    karpenter.sh/discovery: "karpenter-cluster"
+
+---
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: default
+spec:
+  template:
+    spec:
+      requirements:
+        - key: kubernetes.io/arch
+          operator: In
+          values: ["amd64"]
+        - key: kubernetes.io/os
+          operator: In
+          values: ["linux"]
+      # --------------------------------
+      nodeClassRef:
+        group: karpenter.k8s.openstack
+        kind: OpenStackNodeClass
+        name: default
+  limits:
+    cpu: 10
+  disruption:
+    consolidationPolicy: WhenEmptyOrUnderutilized
+    consolidateAfter: 1m
