@@ -75,9 +75,19 @@ kubeadm token create --print-join-command
 ### 10. Criando namespace e secrets
 ```
 kubectl create namespace karpenter
-kubectl create secret generic openstack-cloud-config     --from-file=cloud.yaml=./cloud.yaml     -n karpenter
-secret/openstack-cloud-config created
+kubectl create secret generic openstack-cloud-config \
+    --from-file=clouds.yaml=./clouds.yaml \
+    --namespace karpenter
 ```
+
+### 11. Adicionando o repositório do karpenter no helm
+```
+helm repo add karpenter https://charts.karpenter.sh/
+helm repo update
+
+helm upgrade --install karpenter oci://public.ecr.aws/karpenter/karpenter   --namespace karpenter --create-namespace   --version 1.8.0   --set serviceAccount.create=false   --set serviceAccount.name=karpenter   --set settings.clusterName=${CLUSTER_NAME}   --set settings.interruptionQueue=${CLUSTER_NAME}  
+```
+
 
 ## Conectando os worker nodes
 

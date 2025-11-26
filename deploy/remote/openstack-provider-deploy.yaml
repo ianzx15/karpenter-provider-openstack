@@ -1,0 +1,67 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: karpenter-openstack-provider
+  namespace: karpenter
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: karpenter-openstack-provider
+rules:
+  - apiGroups: ["karpenter.sh"]
+    resources: ["openstacknodeclasses", "nodepools"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["nodes", "pods", "events"]
+    verbs: ["get", "list", "watch", "create", "update", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: karpenter-openstack-provider
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: karpenter-openstack-provider
+subjects:
+  - kind: ServiceAccount
+    name: karpenter-openstack-provider
+    namespace: karpenter
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: karpenter-openstack-provider
+  namespace: karpenter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: karpenter-openstack-provider
+  template:
+    metadata:
+      labels:
+        app: karpenter-openstack-provider
+    spec:
+      serviceAccountName: karpenter-openstack-provider
+      containers:
+        - name: provider
+          image: ianzx15/karpenter-openstack-provider:latest
+          imagePullPolicy: Always
+          env:
+            - name: OS_CLOUD
+              value: openstack
+          volumeMounts:
+            - name: cloud-config
+              mountPath: /etc/openstack
+              readOnly: true
+      volumes:
+        - name: cloud-config
+          secret:
+            secretName: openstack-cloud-config
+            items:
+              - key: clouds.yaml
+                path: clouds.yaml
