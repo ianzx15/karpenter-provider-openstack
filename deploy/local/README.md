@@ -32,9 +32,12 @@ O controller precisa de credenciais para se comunicar com a API do OpenStack.
         identity_api_version: 3
     ```
 
-2.  **Crie o Namespace e o Secret** no cluster:
+2.  **Crie o Cluster, Namespace e o Secret** no cluster:
     ```bash
+    kind create cluster --name karpenter-dev
+    
     kubectl create namespace karpenter
+    
     kubectl create secret generic openstack-cloud-config \
       --from-file=clouds.yaml=clouds.yaml \
       --namespace karpenter
