@@ -1,4 +1,3 @@
-
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -13,11 +12,11 @@ metadata:
 rules:
   - apiGroups: ["coordination.k8s.io"]
     resources: ["leases"]
-    verbs: ["get", "list", "watch", "create", "update", "patch"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 
   - apiGroups: [""]
     resources: ["nodes"]
-    verbs: ["get", "list", "watch", "create", "update", "delete", "patch"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 
   - apiGroups: [""]
     resources: ["pods"]
@@ -41,16 +40,23 @@ rules:
 
   - apiGroups: [""]
     resources: ["events"]
-    verbs: ["create", "update", "patch"]
+    verbs: ["create", "patch", "update"]
 
   - apiGroups: ["storage.k8s.io"]
-    resources: ["volumeattachments"]
+    resources: ["volumeattachments", "csinodes"]
     verbs: ["get", "list", "watch"]
 
-  - apiGroups: ["storage.k8s.io"]
-    resources: ["csinodes"]
+  - apiGroups: ["policy"]
+    resources: ["poddisruptionbudgets"]
     verbs: ["get", "list", "watch"]
+  
+  - apiGroups: ["karpenter.k8s.openstack"]
+    resources: ["openstacknodeclasses"]
+    verbs: ["get", "list", "watch", "update", "patch"] 
 
+  - apiGroups: ["karpenter.k8s.openstack"]
+    resources: ["openstacknodeclasses/status"]
+    verbs: ["get", "update", "patch"] 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -61,18 +67,15 @@ roleRef:
   kind: ClusterRole
   name: karpenter-openstack-provider
 subjects:
-- kind: ServiceAccount
-  name: karpenter-openstack-provider
-  namespace: karpenter
-
+  - kind: ServiceAccount
+    name: karpenter-openstack-provider
+    namespace: karpenter
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: karpenter-openstack-provider
   namespace: karpenter
-  labels:
-    app: karpenter-openstack-provider
 spec:
   replicas: 1
   selector:
@@ -84,40 +87,32 @@ spec:
         app: karpenter-openstack-provider
     spec:
       serviceAccountName: karpenter-openstack-provider
+      tolerations:
+      - key: "node-role.kubernetes.io/control-plane"
+        operator: "Exists"
+        effect: "NoSchedule"
+      - key: "node-role.kubernetes.io/control-plane"
+        operator: "Exists"
+        effect: "NoExecute"
       containers:
       - name: provider
         image: ianzx15/karpenter-openstack-provider:latest
         imagePullPolicy: Always
-
-        envFrom:
-        - secretRef:
-            name: os-env-vars
-
+        args:
+        - "-disable-leader-election"
         env:
-        - name: CLUSTER_NAME
-          value: "kubernetes"
-        - name: RUN_INTEGRATION_TESTS
-          value: "1"
-        - name: LEADER_ELECTION_NAMESPACE
-          value: "kube-system"
-        - name: KUBERNETES_MIN_VERSION
-          value: "1.19.0"
         - name: KARPENTER_SERVICE
           value: "karpenter"
         - name: LOG_LEVEL
           value: "debug"
         - name: DISABLE_WEBHOOK
           value: "true"
-
-        volumeMounts:
-        - name: cloud-config
-          mountPath: /etc/openstack
-          readOnly: true
-
-      volumes:
-      - name: cloud-config
-        secret:
-          secretName: openstack-cloud-config
-          items:
-          - key: cloud.yaml
-            path: clouds.yaml
+        - name: CLUSTER_NAME
+          value: "kubernetes"
+        - name: KUBERNETES_MIN_VERSION
+          value: "1.19.0"
+        - name: LOG_LEVEL
+          value: "info" 
+        envFrom:
+        - secretRef:
+            name: os-env-vars
