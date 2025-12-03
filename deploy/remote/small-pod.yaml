@@ -1,21 +1,31 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: big-inflate
+  name: inflate
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: big-inflate
+      app: inflate
   template:
     metadata:
       labels:
-        app: big-inflate
+        app: inflate
     spec:
+      tolerations:
+        - key: "node-role.kubernetes.io/control-plane"
+          operator: "Exists"
+          effect: "NoSchedule"
+        - key: "node-role.kubernetes.io/control-plane"
+          operator: "Exists"
+          effect: "NoExecute"
+      
       terminationGracePeriodSeconds: 0
       containers:
         - name: inflate
-          image: public.ecr.aws/eks-distro/kubernetes/pause:3.7
+          image: busybox:latest
+          command: ["/bin/sh", "-c"]
+          args: ["while true; do sleep 3600; done"]
           resources:
             requests:
               cpu: "1"

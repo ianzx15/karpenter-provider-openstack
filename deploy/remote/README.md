@@ -246,3 +246,9 @@ O provedor é normalmente implantado como um Deployment simples (como no seu YAM
 # Crie o deployment do provedor OpenStack usando seu arquivo YAML original
 kubectl apply -f openstack-provider-deploy.yaml
 ```
+
+
+# Anotações:
+Problema: Assim como no ambiente baseado em kind, é necessário alterar o status da nodepool para True manualmente, no entanto isso não é possível no kubeadm. Assim, a única saída é extender a interface nodepool do karpenter para que ele possa atualizar o status da nodepool automaticamente, permitindo que os nós sejam descobertos e adicionados ao clusters sem interferência.
+### Adendo
+Adicionar um nó manualmente (ian-manel-tcc-3) permite ao karpenter alocar o pod nesse nó de forma automatiazada.
