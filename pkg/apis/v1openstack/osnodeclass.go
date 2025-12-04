@@ -181,3 +181,4 @@ func (in *OpenStackNodeClass) GetConditions() []status.Condition {
 func (in *OpenStackNodeClass) SetConditions(conditions []status.Condition) {
     in.Status.Conditions = conditions
 }
+

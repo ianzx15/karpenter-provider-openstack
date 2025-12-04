@@ -13,6 +13,7 @@ import (
 	"sigs.k8s.io/karpenter/pkg/operator"
 
 	"github.com/ianzx15/karpenter-provider-openstack/pkg/apis/v1openstack"
+	"github.com/ianzx15/karpenter-provider-openstack/pkg/controller"
 	"github.com/ianzx15/karpenter-provider-openstack/pkg/instance"
 	"github.com/ianzx15/karpenter-provider-openstack/pkg/instancetype"
 )
@@ -78,6 +79,18 @@ func NewOperator(ctx context.Context, op *operator.Operator) (context.Context, *
 
 	instanceProvider := instance.NewProvider(computeClient, clusterName)
 	lo.Must0(v1openstack.AddToScheme(op.Manager.GetScheme()))
+
+	reconciler := &controller.OpenStackNodeClassReconciler{
+		Client: op.Manager.GetClient(),
+	}
+
+	// Inicia o controlador e o registra no Manager
+	if err := reconciler.SetupWithManager(op.Manager); err != nil {
+		logger.Error(err, "failed to setup OpenStackNodeClass controller")
+		os.Exit(1)
+	}
+	logger.Info("OpenStackNodeClass controller registered successfully")
+
 	// 4. Retornar o Operador estendido
 	return ctx, &Operator{
 		Operator:             op,
