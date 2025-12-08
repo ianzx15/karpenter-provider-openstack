@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: inflate
+  namespace: test
 spec:
   replicas: 1
   selector:
@@ -13,12 +14,12 @@ spec:
         app: inflate
     spec:
       tolerations:
-        - key: "node-role.kubernetes.io/control-plane"
+        - key: "karpenter.sh/capacity-type" 
           operator: "Exists"
-          effect: "NoSchedule"
-        - key: "node-role.kubernetes.io/control-plane"
+        - key: "karpenter.sh/nodepool" 
           operator: "Exists"
-          effect: "NoExecute"
+        
+        
       
       terminationGracePeriodSeconds: 0
       containers:
@@ -30,3 +31,11 @@ spec:
             requests:
               cpu: "1"
               memory: "1Gi"
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/role
+                operator: In
+                values: ["worker"]
