@@ -44,6 +44,16 @@ func (p *DefaultProvider) Create(ctx context.Context, nodeClass *v1openstack.Ope
 			errs = append(errs, fmt.Errorf("failed to build instance options for %s: %w", instanceType.Name, err))
 			continue
 		}
+
+		logger := log.FromContext(ctx)
+
+		logger.V(1).Info("OpenStack Request Payload (servers.CreateOpts)",
+			"Flavor", createdOpts.FlavorRef,
+			"Image", createdOpts.ImageRef,
+			"Name", createdOpts.Name,
+			"UserData_Length", len(createdOpts.UserData),
+			"Request", fmt.Sprintf("%+v", createdOpts),
+		)
 		//Real creation
 		server, err := servers.Create(p.computeClient, createdOpts).Extract()
 		if err != nil {
@@ -53,12 +63,12 @@ func (p *DefaultProvider) Create(ctx context.Context, nodeClass *v1openstack.Ope
 
 		instance := &Instance{
 			Name:       server.Name,
-            Type:       instanceType.Name,  
-            ImageID:    createdOpts.ImageRef,
-            Metadata:   server.Metadata,
-            UserData:   createdOpts.UserData,
-            InstanceID: server.ID,
-            Status:     server.Status,
+			Type:       instanceType.Name,
+			ImageID:    createdOpts.ImageRef,
+			Metadata:   server.Metadata,
+			UserData:   createdOpts.UserData,
+			InstanceID: server.ID,
+			Status:     server.Status,
 		}
 
 		log.FromContext(ctx).Info("Creating instance OpenStack", "instanceName", instanceName, "flavor", instanceType.Name, "zone", zone)

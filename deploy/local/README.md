@@ -100,12 +100,6 @@ Em vez de usar Docker, rode o controller direto do seu terminal para ver os logs
     source .env
     ```
 
-3.  **Inicie o Controller:**
-    (Mantenha este terminal aberto para ver os logs)
-    ```bash
-    go run cmd/controller/main.go
-    ```
-
 ## 5. Testando o Provisionamento
 
 Em um **novo terminal**, vamos criar os recursos que disparam o provisionamento.
@@ -188,13 +182,19 @@ Em um **novo terminal**, vamos criar os recursos que disparam o provisionamento.
                   memory: "1Gi"
     ```
 
-3.  **Aplique os Recursos:**
+3. **Inicie o Controller:**
+    (Mantenha este terminal aberto para ver os logs)
+    ```bash
+    go run cmd/controller/main.go
+    ```
+
+4.  **Aplique os Recursos:**
     ```bash
     kubectl apply -f dev-resources.yaml
     kubectl apply -f small-pod.yaml
     ```
 
-4.  **Observe o terminal do `go run`:** Você deve ver os logs `Instance successfully created`!
+5.  **Observe o terminal do `go run`:** Você deve ver os logs `Instance successfully created`!
 
 ## 6. Comandos Úteis (Debug)
 

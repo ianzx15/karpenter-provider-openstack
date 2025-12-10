@@ -103,7 +103,7 @@ func (p *DefaultProvider) List(ctx context.Context, nodeClass *v1openstack.OpenS
 		}
 		instanceTypes = append(instanceTypes, instanceType)
 	}
-	logger.Info(fmt.Sprintf("DEBUG: instancetype.List() está retornando %d tipos de instância.", len(instanceTypes)))
+	logger.V(1).Info(fmt.Sprintf("DEBUG: instancetype.List() está retornando %d tipos de instância.", len(instanceTypes)))
 
 	return instanceTypes, nil
 }

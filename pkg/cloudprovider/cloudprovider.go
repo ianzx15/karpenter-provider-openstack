@@ -117,7 +117,7 @@ func (c *CloudProvider) instanceToNodeClaim(instance *instance.Instance, instanc
 
 	labels["instance-type"] = instance.Type
 
-	nodeClaim.ObejctMeta.Name = instance.Name
+	nodeClaim.ObjectMeta.Name = instance.Name
 	nodeClaim.ObjectMeta.Labels = labels
 	nodeClaim.ObjectMeta.Annotations = annotations
 
