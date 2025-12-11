@@ -3,6 +3,7 @@ package instance
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
@@ -14,6 +15,7 @@ import (
 
 type Provider interface {
 	Create(ctx context.Context, nodeClass *v1openstack.OpenStackNodeClass, nodeClaim *karpv1.NodeClaim, instanceTypes []*cloudprovider.InstanceType) (*Instance, error)
+	Delete(ctx context.Context, providerID string) error
 }
 
 type DefaultProvider struct {
@@ -54,34 +56,34 @@ func (p *DefaultProvider) Create(ctx context.Context, nodeClass *v1openstack.Ope
 			"UserData_Length", len(createdOpts.UserData),
 			"Request", fmt.Sprintf("%+v", createdOpts),
 		)
-		//Real creation
-		server, err := servers.Create(p.computeClient, createdOpts).Extract()
-		if err != nil {
-			errs = append(errs, fmt.Errorf("failed to create instance for %s: %w", instanceType.Name, err))
-			continue
-		}
+		//Real instance
+		// server, err := servers.Create(p.computeClient, createdOpts).Extract()
+		// if err != nil {
+		// 	errs = append(errs, fmt.Errorf("failed to create instance for %s: %w", instanceType.Name, err))
+		// 	continue
+		// }
 
-		instance := &Instance{
-			Name:       server.Name,
-			Type:       instanceType.Name,
-			ImageID:    createdOpts.ImageRef,
-			Metadata:   server.Metadata,
-			UserData:   createdOpts.UserData,
-			InstanceID: server.ID,
-			Status:     server.Status,
-		}
+		// instance := &Instance{
+		// 	Name:       server.Name,
+		// 	Type:       instanceType.Name,
+		// 	ImageID:    createdOpts.ImageRef,
+		// 	Metadata:   server.Metadata,
+		// 	UserData:   createdOpts.UserData,
+		// 	InstanceID: server.ID,
+		// 	Status:     server.Status,
+		// }
 
 		log.FromContext(ctx).Info("Creating instance OpenStack", "instanceName", instanceName, "flavor", instanceType.Name, "zone", zone)
-		//Mocked creation
-		// instance := &Instance{
-		// 	Name:       createdOpts.Name,
-		// 	Type:       createdOpts.FlavorRef,
-		// 	ImageID:    createdOpts.ImageRef,
-		// 	Metadata:   createdOpts.Metadata,
-		// 	UserData:   createdOpts.UserData,
-		// 	InstanceID: "mock-server-id-123",
-		// 	Status:     "BUILD",
-		// }
+		// Mocked creation
+		instance := &Instance{
+			Name:       createdOpts.Name,
+			Type:       createdOpts.FlavorRef,
+			ImageID:    createdOpts.ImageRef,
+			Metadata:   createdOpts.Metadata,
+			UserData:   createdOpts.UserData,
+			InstanceID: "mock-server-id-123",
+			Status:     "BUILD",
+		}
 
 		fmt.Printf("Instance successfully created | instanceName=%s | providerID=%s | status=%s | UserData=%s | MetaData=%s | ImageId=%s | Type=%s\n",
 			instance.Name, instance.InstanceID, instance.Status, string(instance.UserData), instance.Metadata, instance.ImageID, instance.Type)
@@ -103,4 +105,40 @@ func (p *DefaultProvider) buildInstanceOpts(ctx context.Context, nodeClaim *karp
 		ImageRef:  imageID,
 		UserData:  userData,
 	}, nil
+}
+
+func parseOSProviderID(providerID string) (serverID string, err error) {
+	const prefix = "openstack:///"
+	if !strings.HasPrefix(providerID, prefix) {
+		return "", fmt.Errorf("unexpected providerID format: %s", providerID)
+	}
+
+	serverID = strings.TrimPrefix(providerID, prefix)
+	if serverID == "" {
+		return "", fmt.Errorf("invalid OpenStack providerID, expected format openstack:///serverID")
+	}
+
+	return serverID, nil
+}
+
+func (p *DefaultProvider) Delete(ctx context.Context, providerID string) error {
+	instanceID, err := parseOSProviderID(providerID)
+	if err != nil {
+		return fmt.Errorf("parsing provider ID: %w", err)
+	}
+
+	logger := log.FromContext(ctx)
+	logger.Info("Deleting OpenStack instance", "instanceID", instanceID)
+
+	err = servers.Delete(p.computeClient, instanceID).ExtractErr()
+	if err != nil {
+		if _, ok := err.(gophercloud.ErrDefault404); ok {
+			logger.Info("Instance already deleted or not found", "instanceID", instanceID)
+			return cloudprovider.NewNodeClaimNotFoundError(fmt.Errorf("instance not found: %w", err))
+		}
+		return fmt.Errorf("deleting instance %s: %w", instanceID, err)
+	}
+
+	logger.Info("OpenStack instance delete initiated/completed", "instanceID", instanceID)
+	return nil
 }

@@ -44,7 +44,7 @@ func TestCloudProviderCreate(t *testing.T) {
 
 		flavorSmall = "general.small"
 
-		flavorLarge   = "general.large"
+		flavorLarge  = "general.large"
 		flavorMedium = "general.medium"
 	)
 

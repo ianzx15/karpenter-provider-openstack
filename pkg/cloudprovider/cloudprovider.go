@@ -132,7 +132,14 @@ func (c *CloudProvider) GetNodeClass() client.Object {
 }
 
 func (c *CloudProvider) Delete(ctx context.Context, nodeClaim *karpv1.NodeClaim) error {
-	return nil
+
+	providerID := nodeClaim.Status.ProviderID
+
+	if providerID == "" {
+		return fmt.Errorf("cannot delete NodeClaim %s, missing ProviderID", nodeClaim.Name)
+	}
+
+	return c.instanceProvider.Delete(ctx, providerID)
 }
 
 func (c *CloudProvider) List(ctx context.Context) ([]*karpv1.NodeClaim, error) {
