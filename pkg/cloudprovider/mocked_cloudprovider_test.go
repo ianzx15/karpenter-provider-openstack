@@ -24,6 +24,7 @@ import (
 // mockInstanceProvider um mock para a interface instance.Provider
 type mockInstanceProvider struct {
 	CreateFunc func(ctx context.Context, nodeClass *v1openstack.OpenStackNodeClass, nodeClaim *karpv1.NodeClaim, instanceTypes []*cloudprovider.InstanceType) (*instance.Instance, error)
+	DeleteFunc func(ctx context.Context, id string)
 }
 
 func (m *mockInstanceProvider) Create(ctx context.Context, nodeClass *v1openstack.OpenStackNodeClass, nodeClaim *karpv1.NodeClaim, instanceTypes []*cloudprovider.InstanceType) (*instance.Instance, error) {
@@ -31,6 +32,11 @@ func (m *mockInstanceProvider) Create(ctx context.Context, nodeClass *v1openstac
 		return m.CreateFunc(ctx, nodeClass, nodeClaim, instanceTypes)
 	}
 	return nil, fmt.Errorf("CreateFunc não implementado")
+}
+
+
+func (m *mockInstanceProvider) Delete(ctx context.Context, providerID string) error {
+    return nil
 }
 
 func TestCloudProviderCreate(t *testing.T) {

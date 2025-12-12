@@ -121,7 +121,7 @@ func (c *CloudProvider) instanceToNodeClaim(instance *instance.Instance, instanc
 	nodeClaim.ObjectMeta.Labels = labels
 	nodeClaim.ObjectMeta.Annotations = annotations
 
-	nodeClaim.Status.ProviderID = fmt.Sprintf("openstack:///%s", instance.InstanceID, instance.InstanceID)
+	nodeClaim.Status.ProviderID = fmt.Sprintf("openstack:///%s", instance.InstanceID)
 	nodeClaim.Status.ImageID = instance.ImageID
 
 	return nodeClaim
