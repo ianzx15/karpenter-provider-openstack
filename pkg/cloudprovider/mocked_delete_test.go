@@ -15,7 +15,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// mockInstanceProvider um mock para a interface instance.Provider
 type mockProvider struct {
 	CreateFunc func(ctx context.Context, nodeClass *v1openstack.OpenStackNodeClass, nodeClaim *karpv1.NodeClaim, instanceTypes []*cloudprovider.InstanceType) (*instance.Instance, error)
 	DeleteFunc func(ctx context.Context, providerID string) error // Adicionado o retorno de erro para o DeleteFunc
@@ -32,22 +31,19 @@ func (m *mockProvider) Delete(ctx context.Context, providerID string) error {
 	if m.DeleteFunc != nil {
 		return m.DeleteFunc(ctx, providerID)
 	}
-	return nil // Retorna nil por padrão, simulando sucesso
+	return nil
 }
-
-// ... (TestCloudProviderCreate remains here) ...
 
 func TestCloudProviderDelete(t *testing.T) {
 	const (
 		nodeClaimName = "delete-test-nodeclaim"
-		serverID      = "f22b426e-91e1-79f04c705c09" // OpenStack server ID
+		serverID      = "f22b426e-91e1-79f04c705c09"
 		providerID    = "openstack:///" + serverID
 	)
 
 	ctx := context.Background()
 
 	t.Run("successful deletion", func(t *testing.T) {
-		// Objeto NodeClaim com um ProviderID válido
 		nodeClaim := &karpv1.NodeClaim{
 			ObjectMeta: metav1.ObjectMeta{Name: nodeClaimName},
 			Status: karpv1.NodeClaimStatus{
@@ -56,7 +52,6 @@ func TestCloudProviderDelete(t *testing.T) {
 		}
 
 		deleteCalledWith := ""
-		// Configurar o mockInstanceProvider para interceptar a chamada de Delete
 		mockIProvider := &mockProvider{
 			DeleteFunc: func(_ context.Context, id string) error {
 				deleteCalledWith = id
@@ -64,51 +59,47 @@ func TestCloudProviderDelete(t *testing.T) {
 			},
 		}
 
-		// Instanciar o CloudProvider com o mock
 		cp := &CloudProvider{
 			instanceProvider: mockIProvider,
 		}
 
 		err := cp.Delete(ctx, nodeClaim)
 
-		// Verificação
 		require.NoError(t, err, "A exclusão não deve retornar erro")
 		assert.Equal(t, serverID, deleteCalledWith, "A instância deve ser excluída usando o Server ID extraído, não o Provider ID completo.")
 	})
 
 	t.Run("missing providerID", func(t *testing.T) {
-		// Objeto NodeClaim sem ProviderID
 		nodeClaim := &karpv1.NodeClaim{
 			ObjectMeta: metav1.ObjectMeta{Name: nodeClaimName},
-			Status:     karpv1.NodeClaimStatus{ProviderID: ""}, // ProviderID vazio
+			Status:     karpv1.NodeClaimStatus{ProviderID: ""},
 		}
 
-		// Instanciar o CloudProvider (o mock não será chamado)
-		cp := &CloudProvider{}
+		cp := &CloudProvider{
+			instanceProvider: &mockProvider{},
+		}
 
 		err := cp.Delete(ctx, nodeClaim)
 
-		// Verificação
 		require.Error(t, err, "A exclusão deve retornar erro se ProviderID estiver faltando")
 		assert.Contains(t, err.Error(), "missing ProviderID", "Mensagem de erro incorreta para ProviderID ausente")
 	})
 
 	t.Run("invalid providerID format", func(t *testing.T) {
-		// Objeto NodeClaim com ProviderID em formato incorreto
+
 		nodeClaim := &karpv1.NodeClaim{
 			ObjectMeta: metav1.ObjectMeta{Name: nodeClaimName},
 			Status: karpv1.NodeClaimStatus{
-				ProviderID: "invalid-format-id", // Formato incorreto
+				ProviderID: "invalid-format-id",
 			},
 		}
 
-		// Instanciar o CloudProvider (o mock não será chamado)
-		cp := &CloudProvider{}
+		cp := &CloudProvider{
+			instanceProvider: &mockProvider{},
+		}
 
 		err := cp.Delete(ctx, nodeClaim)
 
-		// Verificação
 		require.Error(t, err, "A exclusão deve retornar erro se ProviderID tiver um formato incorreto")
-		assert.Contains(t, err.Error(), "parsing provider ID: unexpected providerID format", "Mensagem de erro incorreta para formato de ProviderID inválido")
-	})
-}
+		assert.Contains(t, err.Error(), "unexpected providerID format", "Mensagem de erro incorreta para formato de ProviderID inválido")	})
+	}

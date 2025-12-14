@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/awslabs/operatorpkg/status"
 	"github.com/ianzx15/karpenter-provider-openstack/pkg/apis/v1openstack"
@@ -131,6 +132,18 @@ func (c *CloudProvider) GetNodeClass() client.Object {
 	return &v1openstack.OpenStackNodeClass{}
 }
 
+func parseOSProviderID(providerID string) (serverID string, err error) {
+	const prefix = "openstack:///"
+
+	if !strings.HasPrefix(providerID, prefix) {
+		return "", fmt.Errorf("unexpected providerID format: %s", providerID)
+	}
+
+	serverID = strings.TrimPrefix(providerID, prefix)
+
+	return serverID, nil
+}
+
 func (c *CloudProvider) Delete(ctx context.Context, nodeClaim *karpv1.NodeClaim) error {
 
 	providerID := nodeClaim.Status.ProviderID
@@ -139,7 +152,12 @@ func (c *CloudProvider) Delete(ctx context.Context, nodeClaim *karpv1.NodeClaim)
 		return fmt.Errorf("cannot delete NodeClaim %s, missing ProviderID", nodeClaim.Name)
 	}
 
-	return c.instanceProvider.Delete(ctx, providerID)
+	instanceID, err := parseOSProviderID(providerID)
+	if err != nil {
+		return fmt.Errorf("parsing provider ID for deletion: %w", err)
+	}
+
+	return c.instanceProvider.Delete(ctx, instanceID)
 }
 
 func (c *CloudProvider) List(ctx context.Context) ([]*karpv1.NodeClaim, error) {
