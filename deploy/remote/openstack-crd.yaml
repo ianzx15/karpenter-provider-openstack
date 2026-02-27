@@ -1,0 +1,187 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: openstacknodeclasses.karpenter.k8s.openstack
+spec:
+  group: karpenter.k8s.openstack
+  names:
+    kind: OpenStackNodeClass
+    plural: openstacknodeclasses
+    singular: openstacknodeclass
+    shortNames:
+      - osnc
+  scope: Cluster
+  versions:
+    - name: v1openstack
+      served: true
+      storage: true
+      subresources:
+        status: {}
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                keyPair:
+                  description: KeyPair is the OpenStack key pair name to assign to the instance.
+                  type: string
+                disks:
+                  description: Disks defines the disks to attach to the provisioned instance.
+                  type: array
+                  maxItems: 10
+                  items:
+                    type: object
+                    required:
+                      - sizeGiB
+                    properties:
+                      sizeGiB:
+                        description: SizeGiB is the size of the disk in GiB.
+                        type: integer
+                        format: int32
+                        minimum: 10
+                      volumeType:
+                        description: VolumeType is the Cinder volume type (e.g., standard, ssd, high-speed).
+                        type: string
+                      boot:
+                        description: Boot indicates that this is the boot disk.
+                        type: boolean
+                userData:
+                  description: UserData to be passed to the instance (cloud-init).
+                  type: string
+                imageRef:
+                  description: ImageRef is the OpenStack Glance image ID to use for the instance.
+                  type: string
+                imageSelectorTerms:
+                  description: ImageSelectorTerms is a list of image selector terms. The terms are ORed.
+                  type: array
+                  minItems: 1
+                  maxItems: 30
+                  items:
+                    type: object
+                    properties:
+                      alias:
+                        description: Alias specifies the image name or family in OpenStack Glance.
+                        type: string
+                        maxLength: 60
+                      id:
+                        description: ID specifies the exact Glance image ID to use.
+                        type: string
+                        maxLength: 160
+                networks:
+                  description: Networks specifies the OpenStack networks to attach to the instance.
+                  type: array
+                  minItems: 1
+                  items:
+                    type: string
+                securityGroups:
+                  description: SecurityGroups specifies the OpenStack security groups to assign to the instance.
+                  type: array
+                  items:
+                    type: string
+                floatingIP:
+                  description: FloatingIP indicates whether to assign a floating IP to the instance.
+                  type: boolean
+                kubeletConfiguration:
+                  description: KubeletConfiguration defines args to be used when configuring kubelet on provisioned nodes.
+                  type: object
+                  properties:
+                    clusterDNS:
+                      description: ClusterDNS is a list of IP addresses for the cluster DNS server.
+                      type: array
+                      items:
+                        type: string
+                    maxPods:
+                      description: MaxPods is an override for the maximum number of pods that can run on a worker node.
+                      type: integer
+                      format: int32
+                      minimum: 0
+                    podsPerCore:
+                      description: PodsPerCore is an override for the number of pods per CPU core.
+                      type: integer
+                      format: int32
+                      minimum: 0
+                    systemReserved:
+                      description: SystemReserved contains resources reserved for OS system daemons and kernel memory.
+                      type: object
+                      additionalProperties:
+                        type: string
+                    kubeReserved:
+                      description: KubeReserved contains resources reserved for Kubernetes system components.
+                      type: object
+                      additionalProperties:
+                        type: string
+                    evictionHard:
+                      description: EvictionHard defines hard eviction thresholds.
+                      type: object
+                      additionalProperties:
+                        type: string
+                    evictionSoft:
+                      description: EvictionSoft defines soft eviction thresholds.
+                      type: object
+                      additionalProperties:
+                        type: string
+                    evictionSoftGracePeriod:
+                      description: EvictionSoftGracePeriod defines grace periods for soft eviction thresholds.
+                      type: object
+                      additionalProperties:
+                        type: string
+                    evictionMaxPodGracePeriod:
+                      description: EvictionMaxPodGracePeriod is the maximum allowed grace period for terminating pods.
+                      type: integer
+                      format: int32
+                    imageGCHighThresholdPercent:
+                      description: ImageGCHighThresholdPercent is the disk usage percent after which image GC is always run.
+                      type: integer
+                      format: int32
+                      minimum: 0
+                      maximum: 100
+                    imageGCLowThresholdPercent:
+                      description: ImageGCLowThresholdPercent is the disk usage percent before which image GC is never run.
+                      type: integer
+                      format: int32
+                      minimum: 0
+                      maximum: 100
+                    cpuCFSQuota:
+                      description: CPUCFSQuota enables CPU CFS quota enforcement for containers that specify CPU limits.
+                      type: boolean
+                labels:
+                  description: Labels to be applied on the OpenStack VM instance.
+                  type: object
+                  additionalProperties:
+                    type: string
+                metadata:
+                  description: Metadata contains key/value pairs to set as instance metadata.
+                  type: object
+                  additionalProperties:
+                    type: string
+            status:
+              type: object
+              properties:
+                conditions:
+                  description: Conditions is the list of resource conditions.
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - lastTransitionTime
+                      - message
+                      - reason
+                      - status
+                      - type
+                    properties:
+                      lastTransitionTime:
+                        type: string
+                        format: date-time
+                      message:
+                        type: string
+                      observedGeneration:
+                        type: integer
+                        format: int64
+                      reason:
+                        type: string
+                      status:
+                        type: string
+                      type:
+                        type: string

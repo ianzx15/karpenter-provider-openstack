@@ -25,7 +25,7 @@ func messageFromMsgAndArgs(msgAndArgs ...any) string {
 		return fmt.Sprintf("%+v", msgAndArgs[0])
 	}
 	if len(msgAndArgs) > 1 {
-		return fmt.Sprintf(msgAndArgs[0].(string), msgAndArgs[1:]...) //nolint:errcheck,forcetypeassert
+		return fmt.Sprintf(msgAndArgs[0].(string), msgAndArgs[1:]...)
 	}
 	return ""
 }
@@ -51,8 +51,9 @@ func must(err any, messageArgs ...any) {
 		message := messageFromMsgAndArgs(messageArgs...)
 		if message != "" {
 			panic(message + ": " + e.Error())
+		} else {
+			panic(e.Error())
 		}
-		panic(e.Error())
 
 	default:
 		panic("must: invalid err type '" + reflect.TypeOf(err).Name() + "', should either be a bool or an error")
@@ -61,7 +62,7 @@ func must(err any, messageArgs ...any) {
 
 // Must is a helper that wraps a call to a function returning a value and an error
 // and panics if err is error or false.
-// Play: https://go.dev/play/p/fOqtX5HudtN
+// Play: https://go.dev/play/p/TMoWrRp3DyC
 func Must[T any](val T, err any, messageArgs ...any) T {
 	must(err, messageArgs...)
 	return val
@@ -73,7 +74,7 @@ func Must0(err any, messageArgs ...any) {
 	must(err, messageArgs...)
 }
 
-// Must1 is an alias to Must.
+// Must1 is an alias to Must
 // Play: https://go.dev/play/p/TMoWrRp3DyC
 func Must1[T any](val T, err any, messageArgs ...any) T {
 	return Must(val, err, messageArgs...)
@@ -129,7 +130,7 @@ func Try(callback func() error) (ok bool) {
 		ok = false
 	}
 
-	return ok
+	return
 }
 
 // Try0 has the same behavior as Try, but callback returns no variable.
@@ -327,7 +328,7 @@ func TryWithErrorValue(callback func() error) (errorValue any, ok bool) {
 		errorValue = err
 	}
 
-	return errorValue, ok
+	return
 }
 
 // TryCatch has the same behavior as Try, but calls the catch function in case of error.
