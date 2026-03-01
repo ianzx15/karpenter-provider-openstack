@@ -1,38 +1,38 @@
-# Guia de Desenvolvimento: Karpenter Provider para OpenStack
+# Development Guide: Karpenter Provider for OpenStack
 
-Este guia mostra os passos para configurar um ambiente de desenvolvimento e rodar o controller do Karpenter (provider OpenStack) localmente.
+This guide outlines the steps to configure your development environment and run the Karpenter controller (OpenStack provider) locally.
 
-## 1. Pré-requisitos
+## 1. Prerequisites
 
-Certifique-se de que possui as seguintes ferramentas instaladas e configuradas:
+Ensure you have the following tools installed and configured:
 
 * **Go** (v1.21+)
-* **kubectl** (configurado para seu cluster de dev)
-* **controller-gen** (para gerar CRDs e código `deepcopy`):
+* **kubectl** (configured for your development cluster)
+* **controller-gen** (to generate CRDs and `deepcopy` code):
     ```bash
     go install sigs.k8s.io/controller-tools/cmd/controller-gen@latest
     ```
 
-## 2. Configuração de Credenciais
+## 2. Credentials Configuration
 
-O controller precisa de credenciais para se comunicar com a API do OpenStack.
+The controller requires credentials to communicate with the OpenStack API.
 
-1.  **Crie o `clouds.yaml`** (substitua pelos seus valores reais):
+1. **Create `clouds.yaml`** (replace with your actual values):
     ```yaml
     clouds:
       openstack:
         auth:
-          auth_url: "https://seu-auth-url:5000/v3"
-          username: "seu-usuario"
-          password: "sua-senha"
-          project_id: "seu-project-id"
+          auth_url: "https://your-auth-url:5000/v3"
+          username: "your-username"
+          password: "your-password"
+          project_id: "your-project-id"
           user_domain_name: "Default"
         region_name: "RegionOne"
         interface: "public"
         identity_api_version: 3
     ```
 
-2.  **Crie o Cluster, Namespace e o Secret** no cluster:
+2. **Create the Cluster, Namespace, and Secret**:
     ```bash
     kind create cluster --name karpenter-dev
     
@@ -43,39 +43,38 @@ O controller precisa de credenciais para se comunicar com a API do OpenStack.
       --namespace karpenter
     ```
 
-## 3. Preparando o Cluster (CRDs)
+## 3. Preparing the Cluster (CRDs)
 
-Precisamos instalar as "definições de recursos" (CRDs) que o Karpenter usa.
+You must install the Custom Resource Definitions (CRDs) that Karpenter uses.
 
-1.  **(Opcional) Limpeza:** Remova definições antigas de testes anteriores.
+1. **(Optional) Cleanup:** Remove old definitions from previous tests.
     ```bash
     kubectl delete crd nodepools.karpenter.sh nodeclaims.karpenter.sh --ignore-not-found=true
     kubectl delete crd openstacknodeclasses.karpenter.k8s.openstack --ignore-not-found=true 
     ```
 
-2.  **Instale os CRDs do Karpenter Core (v1):**
-    O provider `v1` exige os CRDs `v1` do core.
+2. **Install Karpenter Core CRDs (v1):**
+    The `v1` provider requires the `v1` core CRDs.
     ```bash
-    kubectl apply -f https://raw.githubusercontent.com/aws/karpenter-provider-aws/v1.0.0/pkg/apis/crds/karpenter.sh_nodepools.yaml
-
-    kubectl apply -f https://raw.githubusercontent.com/aws/karpenter-provider-aws/v1.0.0/pkg/apis/crds/karpenter.sh_nodeclaims.yaml
+    kubectl apply -f [https://raw.githubusercontent.com/aws/karpenter-provider-aws/v1.0.0/pkg/apis/crds/karpenter.sh_nodepools.yaml](https://raw.githubusercontent.com/aws/karpenter-provider-aws/v1.0.0/pkg/apis/crds/karpenter.sh_nodepools.yaml)
+    kubectl apply -f [https://raw.githubusercontent.com/aws/karpenter-provider-aws/v1.0.0/pkg/apis/crds/karpenter.sh_nodeclaims.yaml](https://raw.githubusercontent.com/aws/karpenter-provider-aws/v1.0.0/pkg/apis/crds/karpenter.sh_nodeclaims.yaml)
     ```
 
-3.  **No root do sistema gere e Instale o seu `OpenStackNodeClass` CRD:**
-    Este comando lê seu código Go (`pkg/apis/...`) e instala a definição customizada no cluster.
+3. **Generate and Install your `OpenStackNodeClass` CRD:**
+    Run this from the project root to read your Go code (`pkg/apis/...`) and install the custom definition.
     ```bash
-    # (Opcional) Gere o 'zz_generated.deepcopy.go' se você alterou as structs
+    # (Optional) Generate 'zz_generated.deepcopy.go' if you modified structs
     controller-gen object paths="./..."
 
-    # Gere e aplique o CRD YAML (ajuste a versão se necessário)
+    # Generate and apply the CRD YAML
     controller-gen crd paths="./..." output:stdout | kubectl apply -f -
     ```
 
-## 4. Rodando o Controller Localmente
+## 4. Running the Controller Locally
 
-Em vez de usar Docker, rode o controller direto do seu terminal para ver os logs em tempo real.
+Run the controller directly in your terminal to monitor logs in real-time.
 
-1.  **Crie o arquivo .env com o seguinte conteúdo:**
+1. **Create a `.env` file with the following content:**
     ```bash
     export OS_AUTH_URL="https://your-url"
     export OS_USERNAME="your-user"
@@ -85,28 +84,25 @@ Em vez de usar Docker, rode o controller direto do seu terminal para ver os logs
     export OS_REGION_NAME="your-zone"
 
     export CLUSTER_NAME="karpenter-openstack-test"
-
     export LEADER_ELECTION_NAMESPACE=kube-system
-
     export KUBERNETES_MIN_VERSION="1.19.0"
     export KARPENTER_SERVICE="karpenter"
     export LOG_LEVEL="debug"
     export DISABLE_WEBHOOK="true"
-
     export RUN_INTEGRATION_TESTS=1 
     ```
-2. **Aplique ao terminal:**
-    ```
+
+2. **Apply to terminal:**
+    ```bash
     source .env
     ```
 
-## 5. Testando o Provisionamento
+## 5. Testing Provisioning
 
-Em um **novo terminal**, vamos criar os recursos que disparam o provisionamento.
+In a **new terminal**, create the resources that trigger provisioning.
 
-1.  **Crie o `dev-resources.yaml`:**
-    * Certifique-se de que `apiVersion` bate com o que foi gerado no passo 3 (provavelmente `.../v1openstack`).
-    * **Use os UUIDs reais** do seu OpenStack para a imagem e rede.
+1. **Create `dev-resources.yaml`:**
+    * Use **actual UUIDs** from your OpenStack environment for the image and network.
 
     ```yaml
     apiVersion: karpenter.k8s.openstack/v1openstack
@@ -114,19 +110,14 @@ Em um **novo terminal**, vamos criar os recursos que disparam o provisionamento.
     metadata:
       name: default
     spec:
-      # Use o ID da imagem, não o alias
       imageSelectorTerms:
-        - id: "UUID-DA-SUA-IMAGEM-GLANCE" 
-      # Use o ID da rede
+        - id: "YOUR-GLANCE-IMAGE-UUID" 
       networks:
-        - "UUID-DA-SUA-REDE-NEUTRON"
+        - id: "YOUR-NEUTRON-NETWORK-UUID"
       securityGroups:
-        - "default"
+        - name: "default"
       metadata:
         karpenter.sh/discovery: "karpenter-cluster"
-      # userData: |
-      #   #!/bin/bash
-      #   /usr/bin/kubeadm join ...
     
     ---
     apiVersion: karpenter.sh/v1
@@ -144,7 +135,7 @@ Em um **novo terminal**, vamos criar os recursos que disparam o provisionamento.
               operator: In
               values: ["linux"]
           nodeClassRef:
-            group: karpenter.k8s.openstack # O mesmo grupo do NodeClass
+            group: karpenter.k8s.openstack
             kind: OpenStackNodeClass
             name: default
       limits:
@@ -154,8 +145,8 @@ Em um **novo terminal**, vamos criar os recursos que disparam o provisionamento.
         consolidateAfter: 1m
     ```
 
-2.  **Crie o `test-pod.yaml` (para teste):**
-    * Peça recursos que caibam no seu flavor `general.medium` (que tem 2 vCPU - 0.5 overhead = 1.5 vCPU livre).
+2. **Create `test-pod.yaml` (Inflate Test):**
+    Request resources that fit your flavor (e.g., `general.medium`).
 
     ```yaml
     apiVersion: apps/v1
@@ -178,48 +169,42 @@ Em um **novo terminal**, vamos criar os recursos que disparam o provisionamento.
               image: public.ecr.aws/eks-distro/kubernetes/pause:3.7
               resources:
                 requests:
-                  cpu: "1.5" # Cabe no 'medium'
+                  cpu: "1.5" 
                   memory: "1Gi"
     ```
 
-3. **Inicie o Controller:**
-    (Mantenha este terminal aberto para ver os logs)
+3. **Start the Controller:**
+    (Keep this terminal open)
     ```bash
     go run cmd/controller/main.go
     ```
 
-4.  **Aplique os Recursos:**
+4. **Apply Resources:**
     ```bash
     kubectl apply -f dev-resources.yaml
-    kubectl apply -f small-pod.yaml
+    kubectl apply -f test-pod.yaml
     ```
 
-5.  **Observe o terminal do `go run`:** Você deve ver os logs `Instance successfully created`!
+5. **Monitor Logs:** You should see `Instance successfully created` in the controller terminal.
 
-## 6. Comandos Úteis (Debug)
+## 6. Useful Commands (Debug)
 
-### Forçar o NodePool a ficar "Ready"
-Se o `kubectl get nodepool` mostrar `READY=False` ou `Unknown` (e o controller não tiver erros), o status do `NodeClass` pode não ter atualizado. Force-o:
+### Force NodePool to "Ready"
+If `kubectl get nodepool` shows `READY=False` or `Unknown`, you can force the status update:
 ```bash
-# Certifique-se de usar o nome correto do CRD (com .karpenter.k8s.openstack)
 kubectl patch openstacknodeclasses.karpenter.k8s.openstack default --type=merge --subresource=status -p '{"status":{"conditions":[{"type":"Ready","status":"True","lastTransitionTime":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","reason":"Reconciled","message":"Manually set"}]}}'
 ```
-
-
-### Limpeza do ambiente
-```
+## Environment Cleanup
+ ```bash
 kubectl delete nodeclaim --all
 kubectl delete deployment --all
 kubectl delete nodepool --all
-```
-
-
-### Deletando nodeclaims zumbis
-**Execute no terminal:**
+ ```
+Deleting zombie NodeClaims
+Run in terminal:
 ```
 for nc in $(kubectl get nodeclaims -o name); do
-  echo "Forçando a exclusão de ${nc}..."
+  echo "Forcing deletion of ${nc}..."
   kubectl patch ${nc} -p '{"metadata":{"finalizers":null}}' --type=merge
 done
-
 ```
