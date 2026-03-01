@@ -18,7 +18,7 @@ Karpenter is a next-generation autoscaler that watches for "Pending" pods and pr
 * **Modular Architecture:** Written in Go, leveraging the **Gophercloud** SDK for interaction with Nova (Compute), Neutron (Networking), and Keystone (Identity) services.
 
 ## 🏗️ Architecture and Workflow
-<img src="d1.png" alt="Karpenter OpenStack Scaling Flow" width="600">
+<img src="d1.jpeg" alt="Karpenter OpenStack Scaling Flow" width="600">
 The provider acts as a bridge between the Karpenter controller and the OpenStack API. The workflow follows these steps:
 
 ### Workflow Steps (as shown in the diagram):
