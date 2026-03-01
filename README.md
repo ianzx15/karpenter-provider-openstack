@@ -18,14 +18,15 @@ Karpenter is a next-generation autoscaler that watches for "Pending" pods and pr
 * **Modular Architecture:** Written in Go, leveraging the **Gophercloud** SDK for interaction with Nova (Compute), Neutron (Networking), and Keystone (Identity) services.
 
 ## 🏗️ Architecture and Workflow
-
+![Karpenter OpenStack Architecture](d1.png)
 The provider acts as a bridge between the Karpenter controller and the OpenStack API. The workflow follows these steps:
 
-1. **Detection:** Karpenter identifies a Pod that cannot be scheduled due to insufficient resources.
-2. **Resolution:** The provider queries the `OpenStackNodeClass` and filters available `Flavors`.
-3. **Provisioning:** The controller triggers `Nova` (OpenStack Compute) to instantiate the VM.
-4. **Binding:** The instance is registered back to the Kubernetes cluster with the `ProviderID` format (`openstack:///VM-UUID`).
-
+### Workflow Steps (as shown in the diagram):
+1. **Watch Pending Pods:** The Karpenter Core monitors the Kubernetes API Server for pods that cannot be scheduled due to lack of resources.
+2. **Resolve NodeClass:** The controller identifies the associated `OpenStackNodeClass` to understand the infrastructure constraints (image, network, security groups).
+3. **Invoke Logic:** The `CloudProvider` implementation triggers the internal logic to determine the best scaling action.
+4. **Map Node Specs:** The `InstanceTypeProvider` queries the OpenStack flavors and maps their hardware specs (CPU, RAM) back to Kubernetes requirements.
+5. **API Calls (Gophercloud):** The `InstanceProvider` executes the final provisioning requests to OpenStack services (Nova/Neutron) to launch the new virtual machine.
 [Image of OpenStack logical architecture showing Nova, Neutron and Keystone services]
 
 ## 🛠️ Tech Stack
