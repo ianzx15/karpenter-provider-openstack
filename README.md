@@ -10,8 +10,6 @@ This project was developed as a Final Course Project (TCC) at the **Federal Univ
 
 Karpenter is a next-generation autoscaler that watches for "Pending" pods and provisions nodes directly in the cloud infrastructure. While established implementations exist for AWS, Azure, and GCP, this project fills the gap for the **OpenStack** ecosystem by utilizing the **Adapter Pattern** to integrate Kubernetes APIs with IaaS services.
 
-[Image of Karpenter architecture workflow showing pending pods leading to node provision]
-
 ### Key Features
 * **Node Group-less Provisioning:** Creates instances on-demand with the exact specifications required by the workload.
 * **Intelligent Flavor Selection:** Maps CPU/RAM requirements to the most cost-effective *Flavor* in the OpenStack catalog.
@@ -27,7 +25,6 @@ The provider acts as a bridge between the Karpenter controller and the OpenStack
 3. **Invoke Logic:** The `CloudProvider` implementation triggers the internal logic to determine the best scaling action.
 4. **Map Node Specs:** The `InstanceTypeProvider` queries the OpenStack flavors and maps their hardware specs (CPU, RAM) back to Kubernetes requirements.
 5. **API Calls (Gophercloud):** The `InstanceProvider` executes the final provisioning requests to OpenStack services (Nova/Neutron) to launch the new virtual machine.
-[Image of OpenStack logical architecture showing Nova, Neutron and Keystone services]
 
 ## 🛠️ Tech Stack
 
